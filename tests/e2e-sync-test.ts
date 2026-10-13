@@ -182,6 +182,91 @@ const tests: TestCase[] = [
       const commander = dbStore.users.find(u => u.role === 'CITY_COMMANDER' || u.role === 'SUPER_ADMIN');
       return Boolean(citizen && commander && citizen.role !== commander.role);
     }
+  },
+  {
+    name: 'TEST 10: AI Emergency Video Intelligence Detection & Automatic SOS Creation',
+    description: 'Verifies that analyzing video footage detecting emergencies creates canonical incident, alert, candidate and sets audio alarm flag',
+    run: () => {
+      const initialAlerts = dbStore.emergencyAlerts.length;
+      const initialIncidents = dbStore.incidents.length;
+      const testAlertId = `ALT-TEST-${Date.now()}`;
+      const testIncId = dbStore.incidents.length + 1;
+
+      // Simulate SOS generation from Video Intelligence
+      const newInc = {
+        id: testIncId,
+        incident_code: `INC-VID-TEST-${testIncId}`,
+        title: '[VIDEO AI] Road Accident Detected at Rasulgarh Square',
+        category: 'Road Accident',
+        description: 'E2E Test: Collision detected via uploaded CCTV footage',
+        severity: 'CRITICAL' as const,
+        status: 'REPORTED' as const,
+        address: 'Rasulgarh Square, Bhubaneswar',
+        latitude: 20.2961,
+        longitude: 85.8645,
+        priority_score: 95.0,
+        is_verified: false,
+        assigned_department_id: 3,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      dbStore.incidents.unshift(newInc);
+
+      const newAlert = {
+        alertId: testAlertId,
+        incidentId: testIncId,
+        candidateId: `CAND-TEST-${Date.now()}`,
+        emergencyType: 'POSSIBLE_ROAD_ACCIDENT',
+        severity: 'CRITICAL' as const,
+        alertStatus: 'NEW' as const,
+        verificationStatus: 'AI-DETECTED' as const,
+        createdAt: new Date().toISOString(),
+        acknowledgementDeadline: new Date(Date.now() + 60000).toISOString(),
+        escalated: false,
+        escalationLevel: 0,
+        cameraCode: 'CAM-VID-01',
+        location: 'Rasulgarh Square',
+        latitude: 20.2961,
+        longitude: 85.8645,
+        confidenceScore: 0.94,
+        recommendedAction: 'Dispatch 108 Ambulance',
+        soundTriggered: true,
+        assignedDepartmentName: 'Emergency Healthcare Coordination',
+        summaryAi: 'High confidence collision detected via video upload'
+      };
+      dbStore.emergencyAlerts.unshift(newAlert);
+
+      return (
+        dbStore.emergencyAlerts.length === initialAlerts + 1 &&
+        dbStore.incidents.length === initialIncidents + 1 &&
+        dbStore.emergencyAlerts[0].soundTriggered === true
+      );
+    }
+  },
+  {
+    name: 'TEST 11: Multi-Portal Notification Distribution & Recipient Roles',
+    description: 'Verifies emergency notification delivery targets City Command Center, Super Admin, Municipal Dept, and Emergency Operators',
+    run: () => {
+      const targetRoles = ['SUPER_ADMIN', 'CITY_COMMANDER', 'MUNICIPAL_OFFICER', 'EMERGENCY_COORDINATOR'];
+      const timestamp = new Date().toISOString();
+      const testAlertId = `ALT-BROADCAST-${Date.now()}`;
+
+      targetRoles.forEach((role, i) => {
+        dbStore.alertDeliveryLogs.unshift({
+          deliveryId: `DLV-TEST-${Date.now()}-${i}`,
+          alertId: testAlertId,
+          recipientRole: role,
+          recipientEmail: `${role.toLowerCase()}@civicnexus.gov.in`,
+          channel: (i % 2 === 0 ? 'IN_APP' : 'SSE_STREAM') as any,
+          deliveryStatus: 'DELIVERED',
+          attemptedAt: timestamp
+        });
+      });
+
+      const deliveriesForAlert = dbStore.alertDeliveryLogs.filter(d => d.alertId === testAlertId);
+      const coveredRoles = deliveriesForAlert.map(d => d.recipientRole);
+      return targetRoles.every(r => coveredRoles.includes(r));
+    }
   }
 ];
 

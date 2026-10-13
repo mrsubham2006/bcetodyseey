@@ -312,6 +312,69 @@ export interface AlertEscalationRecord {
   status: 'ACTIVE' | 'RESOLVED';
 }
 
+export interface VideoAnalysisEvent {
+  eventId: string;
+  videoAnalysisId: string;
+  eventType: string;
+  videoTimestamp: string;
+  videoTimestampSeconds: number;
+  confidenceScore: number;
+  evidenceThumbnail: string;
+  boundingBoxes: { label: string; confidence: number; x: number; y: number; width: number; height: number; color: string }[];
+  trackingId?: string;
+  trackingStatus?: string;
+  description: string;
+  verificationStatus: 'AI_CANDIDATE' | 'AWAITING_VERIFICATION' | 'VERIFIED' | 'FALSE_ALARM' | 'RESOLVED';
+  recommendedAction: string;
+  incidentId?: number;
+  alertId?: string;
+}
+
+export interface VideoAnalysis {
+  videoAnalysisId: string;
+  uploadedBy: string;
+  storageReference: string;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  durationSeconds: number;
+  resolution: string;
+  framesAnalyzed: number;
+  analysisStatus: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  processingStartedAt: string;
+  processingCompletedAt?: string;
+  pipelineVersion: string;
+  locationName: string;
+  cameraCode?: string;
+  recordedAt?: string;
+  description?: string;
+  summaryNarrative: string;
+  detectedEmergency: boolean;
+  events: VideoAnalysisEvent[];
+  routeVerificationStatus?: 'UNVERIFIED' | 'VERIFIED' | 'NOT_APPLICABLE';
+  routeClearanceRequestId?: string;
+  errorDetail?: string;
+}
+
+export interface RouteClearanceRequest {
+  requestId: string;
+  incidentId: number;
+  alertId?: string;
+  videoAnalysisId?: string;
+  vehicleType: 'AMBULANCE' | 'FIRE_ENGINE' | 'POLICE_ESCORT' | 'DISASTER_RESCUE';
+  vehicleCallSign?: string;
+  routeReference: string;
+  requestedBy: string;
+  requestStatus: 'PENDING' | 'APPROVED' | 'ACTIVE' | 'CLEARED' | 'REJECTED';
+  originLocation: string;
+  destinationHospital: string;
+  corridorSegments: { segmentName: string; roadName: string; status: 'CLEAR' | 'CONGESTED' | 'PREEMPTED'; etaMinutes: number }[];
+  preemptionSignals: string[];
+  trafficClearanceNotice: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TourismPlace {
   id: number;
   name: string;
@@ -846,6 +909,79 @@ export function createInitialDb() {
 
   const alertEscalations: AlertEscalationRecord[] = [];
 
+  const videoAnalyses: VideoAnalysis[] = [
+    {
+      videoAnalysisId: "VID-ANALYSIS-2026-001",
+      uploadedBy: "emergency.operator@civicnexus.gov.in",
+      storageReference: "/evidence/videos/sample-cctv-rasulgarh.mp4",
+      fileName: "Rasulgarh_Flyover_Traffic_108Amb.mp4",
+      fileSizeBytes: 14850000,
+      mimeType: "video/mp4",
+      durationSeconds: 38,
+      resolution: "1920x1080",
+      framesAnalyzed: 19,
+      analysisStatus: "COMPLETED",
+      processingStartedAt: new Date(Date.now() - 180000).toISOString(),
+      processingCompletedAt: new Date(Date.now() - 172000).toISOString(),
+      pipelineVersion: "NexusVision-MultiCategory-v3.2",
+      locationName: "Rasulgarh Junction Flyover NH-16",
+      cameraCode: "CCTV-OD-101",
+      recordedAt: new Date(Date.now() - 240000).toISOString(),
+      description: "108 Lifeline Trauma Ambulance traversing through congested bottleneck lane",
+      summaryNarrative: "AI Vision analysis verified 108 Lifeline Ambulance vehicle in transit at 00:00:18 with siren illuminator active. Route clearance preemption recommended along NH-16 corridor to AIIMS.",
+      detectedEmergency: true,
+      events: [
+        {
+          eventId: "EVT-VID-01",
+          videoAnalysisId: "VID-ANALYSIS-2026-001",
+          eventType: "AMBULANCE_IN_TRANSIT",
+          videoTimestamp: "00:00:18",
+          videoTimestampSeconds: 18,
+          confidenceScore: 0.94,
+          evidenceThumbnail: "https://images.unsplash.com/photo-1587745416684-47953f16f02f?w=640",
+          boundingBoxes: [
+            { label: "108 Ambulance", confidence: 0.94, x: 22, y: 35, width: 34, height: 28, color: "#10B981" }
+          ],
+          trackingId: "TRK-AMB-108",
+          trackingStatus: "Tracked across frames t=14s to t=24s",
+          description: "An ambulance-like vehicle with active medical livery was detected moving westbound through the corridor.",
+          verificationStatus: "VERIFIED",
+          recommendedAction: "Activate Green Corridor Signal Preemption to AIIMS Bhubaneswar Hospital.",
+          incidentId: 1,
+          alertId: "ALT-CRIT-901"
+        }
+      ],
+      routeVerificationStatus: "VERIFIED",
+      routeClearanceRequestId: "CLR-REQ-2026-101"
+    }
+  ];
+
+  const routeClearanceRequests: RouteClearanceRequest[] = [
+    {
+      requestId: "CLR-REQ-2026-101",
+      incidentId: 1,
+      alertId: "ALT-CRIT-901",
+      videoAnalysisId: "VID-ANALYSIS-2026-001",
+      vehicleType: "AMBULANCE",
+      vehicleCallSign: "OD-02-AMB-108-01",
+      routeReference: "Rasulgarh Flyover -> Vani Vihar -> Master Canteen -> AIIMS Bhubaneswar",
+      requestedBy: "emergency.operator@civicnexus.gov.in",
+      requestStatus: "ACTIVE",
+      originLocation: "Rasulgarh Junction Flyover NH-16",
+      destinationHospital: "AIIMS Bhubaneswar Super Specialty Trauma Center",
+      corridorSegments: [
+        { segmentName: "NH-16 Rasulgarh Flyover Ingress", roadName: "National Highway 16", status: "PREEMPTED", etaMinutes: 2 },
+        { segmentName: "Vani Vihar Square Underpass", roadName: "Cuttack-Puri Road Bypass", status: "CLEAR", etaMinutes: 4 },
+        { segmentName: "Sishu Bhawan Chowk Junction", roadName: "Rajpath Arterial", status: "CLEAR", etaMinutes: 3 },
+        { segmentName: "AIIMS Expressway Terminal Approach", roadName: "AIIMS Access Boulevard", status: "CLEAR", etaMinutes: 3 }
+      ],
+      preemptionSignals: ["SIG-RASULGARH-01", "SIG-VANIVIHAR-03", "SIG-SISHUBHAWAN-02"],
+      trafficClearanceNotice: "Green Corridor Activated by Traffic Control Room. All 3 intersections switched to emergency preemption override.",
+      createdAt: new Date(Date.now() - 170000).toISOString(),
+      updatedAt: new Date(Date.now() - 60000).toISOString()
+    }
+  ];
+
   const tourismPlaces: TourismPlace[] = [
     { id: 1, name: "Konark Sun Temple", odia_name: "କୋଣାର୍କ ସୂର୍ଯ୍ୟ ମନ୍ଦିର", category: "UNESCO World Heritage Site", description: "13th century architectural marvel built as a giant stone chariot with 24 carved wheels.", latitude: 19.8876, longitude: 86.0945, image_url: "https://images.unsplash.com/photo-1627894006066-b457863ca898?w=800", cultural_significance: "Kalinga Architecture Golden Era", timings: "06:00 AM - 08:00 PM", accessibility_notes: "Wheelchair ramps available at main entrance", current_safety_status: "ALL_CLEAR" },
     { id: 2, name: "Shree Jagannath Temple Puri", odia_name: "ଶ୍ରୀ ଜଗନ୍ନାଥ ମନ୍ଦିର ପୁରୀ", category: "Sacred Shrine & Pilgrimage", description: "12th century sacred temple dedicated to Lord Jagannath, Balabhadra and Subhadra.", latitude: 19.8047, longitude: 85.8180, image_url: "https://images.unsplash.com/photo-1609946782782-720610f63b6a?w=800", cultural_significance: "Char Dham Pilgrimage", timings: "05:00 AM - 11:00 PM", accessibility_notes: "Special assistance queues available", current_safety_status: "ALL_CLEAR" },
@@ -1171,6 +1307,8 @@ export function createInitialDb() {
     emergencyResponses,
     alertDeliveryLogs,
     alertEscalations,
+    videoAnalyses,
+    routeClearanceRequests,
     incidentEvents: [
       {
         eventId: 'EVT-INIT-101',

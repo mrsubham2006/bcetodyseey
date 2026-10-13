@@ -42,23 +42,29 @@ export const CommandCenterView: React.FC = () => {
 
   // Assignment Modal / State
   const [assignDeptId, setAssignDeptId] = useState<number>(1);
+  const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
+  const [clearanceRequests, setClearanceRequests] = useState<any[]>([]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [incRes, hospRes, camRes, restRes, deptRes, analRes] = await Promise.all([
+      const [incRes, hospRes, camRes, restRes, deptRes, analRes, emAlertsRes, clrRes] = await Promise.all([
         fetch('/api/v1/incidents'),
         fetch('/api/v1/hospitals'),
         fetch('/api/v1/cameras'),
         fetch('/api/v1/road-restrictions'),
         fetch('/api/v1/departments'),
-        fetch('/api/v1/analytics/overview')
+        fetch('/api/v1/analytics/overview'),
+        fetch('/api/emergency/alerts'),
+        fetch('/api/emergency/route-clearance-requests')
       ]);
 
       if (incRes.ok) setIncidents(await incRes.json());
       if (hospRes.ok) setHospitals(await hospRes.json());
       if (camRes.ok) setCameras(await camRes.json());
       if (restRes.ok) setRestrictions(await restRes.json());
+      if (emAlertsRes.ok) setEmergencyAlerts(await emAlertsRes.json());
+      if (clrRes.ok) setClearanceRequests(await clrRes.json());
       if (deptRes.ok) {
         const d = await deptRes.json();
         setDepartments(d);
@@ -183,6 +189,32 @@ export const CommandCenterView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Real-Time Video AI SOS & Green Corridor Banner */}
+      {(emergencyAlerts.some(a => a.alertStatus === 'NEW') || clearanceRequests.some(c => c.requestStatus === 'ACTIVE')) && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950 via-slate-900 to-emerald-950 border border-red-500/60 shadow-lg text-white flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-red-600 text-white">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-xs text-amber-300 uppercase tracking-wider block">
+                🚨 Command Center Priority Alert: AI Video Intelligence &amp; Green Corridor Active
+              </span>
+              <p className="text-xs text-slate-200">
+                {clearanceRequests.some(c => c.requestStatus === 'ACTIVE')
+                  ? `Active Green Corridor: 108 Emergency Medical Vehicle Traversing Rasulgarh Bypass. Signal Preemption Active.`
+                  : `AI Video Detection: High-Priority Emergency Event Logged via Video Intelligence. Real-time telemetry synchronized.`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <span className="px-3 py-1 rounded-full bg-red-600 text-white font-mono font-bold text-xs shadow">
+              {emergencyAlerts.filter(a => a.alertStatus === 'NEW').length} Live Alerts
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Top Operational Statistics (KPIs) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">

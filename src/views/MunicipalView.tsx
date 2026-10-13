@@ -33,6 +33,7 @@ import {
   Layers,
   ArrowRight,
   Eye,
+  Navigation,
   X
 } from 'lucide-react';
 
@@ -70,6 +71,7 @@ export const MunicipalView: React.FC = () => {
   const [assets, setAssets] = useState<MunicipalAsset[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [routeClearanceRequests, setRouteClearanceRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Filters & Selected Items
@@ -88,14 +90,15 @@ export const MunicipalView: React.FC = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [rRes, tRes, dRes, iRes, aRes, invRes, auditRes] = await Promise.all([
+      const [rRes, tRes, dRes, iRes, aRes, invRes, auditRes, clrRes] = await Promise.all([
         fetch('/api/v1/reports'),
         fetch('/api/v1/tasks'),
         fetch('/api/v1/departments'),
         fetch('/api/v1/incidents'),
         fetch('/api/v1/municipal/assets'),
         fetch('/api/v1/municipal/inventory'),
-        fetch('/api/v1/audit-logs')
+        fetch('/api/v1/audit-logs'),
+        fetch('/api/emergency/route-clearance-requests')
       ]);
 
       if (rRes.ok) setReports(await rRes.json());
@@ -105,6 +108,7 @@ export const MunicipalView: React.FC = () => {
       if (aRes.ok) setAssets(await aRes.json());
       if (invRes.ok) setInventory(await invRes.json());
       if (auditRes.ok) setAuditLogs(await auditRes.json());
+      if (clrRes.ok) setRouteClearanceRequests(await clrRes.json());
     } catch (err) {
       console.error('Municipal data fetch error:', err);
     } finally {
@@ -232,6 +236,28 @@ export const MunicipalView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Active Green Corridor Route Clearance Alert */}
+      {routeClearanceRequests.some(r => r.requestStatus === 'ACTIVE') && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border border-emerald-500/60 shadow-md text-white flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
+              <Navigation className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-xs text-emerald-300 uppercase tracking-wider block">
+                🚨 Municipal Traffic Notice: Active Emergency Green Corridor Route
+              </span>
+              <p className="text-xs text-slate-200">
+                108 Emergency Medical Vehicle Traversing Ward Corridors (Rasulgarh ➔ AIIMS Bhubaneswar). Municipal road crews instructed to maintain lane clearance.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-mono font-bold text-xs shrink-0 shadow">
+            GREEN CORRIDOR ACTIVE
+          </span>
+        </div>
+      )}
 
       {/* Top Operational KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -56,6 +56,7 @@ import {
   Volume1
 } from 'lucide-react';
 import { PanelRoleAuth } from '../components/PanelRoleAuth';
+import { VideoIntelligencePanel } from '../components/VideoIntelligencePanel';
 
 interface EmergencyResponseViewProps {
   onNavigateHome?: () => void;
@@ -164,8 +165,8 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
   const [manualSosNotes, setManualSosNotes] = useState<string>('Distress 112 call logged by EOC Operator. High-velocity collision.');
   const [creatingSos, setCreatingSos] = useState<boolean>(false);
 
-  // Active View Tab
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'CCTV' | 'ALERTS' | 'MAP' | 'DISPATCH' | 'AI_INTEL' | 'TESTS'>('DASHBOARD');
+  // Active View Tab - Defaults to AI Video Emergency Analyzer
+  const [activeTab, setActiveTab] = useState<'VIDEO_INTEL' | 'DASHBOARD' | 'CCTV' | 'ALERTS' | 'MAP' | 'DISPATCH' | 'AI_INTEL' | 'TESTS'>('VIDEO_INTEL');
 
   // Data States
   const [overview, setOverview] = useState<EmergencyOverviewStats>({
@@ -184,6 +185,18 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
     audioAlertsEnabled: false
   });
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
+  const [stats, setStats] = useState({
+    activeEmergencyAlerts: 0,
+    criticalIncidents: 0,
+    highPriorityIncidents: 0,
+    videosAwaitingAnalysis: 0,
+    videosCurrentlyProcessing: 0,
+    incidentsAwaitingVerification: 0,
+    ambulancesDetected: 0,
+    fireAndSmokeAlerts: 0,
+    possibleRoadAccidents: 0,
+    crowdSafetyAlerts: 0
+  });
   const [cameras, setCameras] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<AIDetectionEvent[]>([]);
   const [vehicles, setVehicles] = useState<EmergencyVehicle[]>([]);
@@ -251,15 +264,17 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
   // Fetch Core Emergency Data from Backend
   const loadAllEmergencyData = async () => {
     try {
-      const [ovRes, alRes, camRes, detRes, vehRes, hospRes] = await Promise.all([
+      const [ovRes, alRes, camRes, detRes, vehRes, hospRes, statsRes] = await Promise.all([
         fetch('/api/v1/emergency/overview'),
         fetch('/api/v1/emergency/alerts'),
         fetch('/api/v1/emergency/cameras'),
         fetch('/api/v1/emergency/detections'),
         fetch('/api/v1/emergency/vehicles'),
-        fetch('/api/v1/hospitals')
+        fetch('/api/v1/hospitals'),
+        fetch('/api/emergency/stats')
       ]);
 
+      if (statsRes.ok) setStats(await statsRes.json());
       if (ovRes.ok) setOverview(await ovRes.json());
       if (alRes.ok) {
         const alData = await alRes.json();
@@ -301,6 +316,13 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
               showToast(`🚨 New High-Priority Alert: ${payload.eventPayload?.alert?.emergencyType || 'Incident Reported'}`, 'alert');
               if (audioEnabled && !audioMuted) {
                 triggerAudioSiren();
+              }
+            }
+            if (payload.eventType === 'emergency.video_sos_alert_created') {
+              const sev = payload.eventPayload?.alert?.severity;
+              showToast(`📹 VIDEO AI SOS: ${payload.eventPayload?.alert?.emergencyType?.replace(/_/g, ' ') || 'Emergency'} detected from uploaded footage!`, 'alert');
+              if (audioEnabled && !audioMuted) {
+                triggerAudioSiren(sev === 'CRITICAL' ? 'AMBULANCE_HILO' : 'RAPID_YELP');
               }
             }
           }
@@ -726,316 +748,166 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
         </div>
       )}
 
-      {/* ── 2. TOP EOC STATUS BAR (Section 1) ─────────────────────────────────── */}
-      <header className="bg-slate-950 text-slate-100 border-b border-slate-800 px-4 sm:px-6 py-3 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* ── 2. STREAMLINED USER-FRIENDLY EOC STATUS BAR ────────────────────── */}
+      <header className="bg-slate-950 text-slate-100 border-b border-slate-800 px-4 sm:px-6 py-3.5 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-red-700/80 border border-red-500 text-amber-300 shadow-md">
+          {/* Logo & Clean Title */}
+          <div className="flex items-center space-x-3.5">
+            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 border border-red-500/60 text-white shadow-lg shadow-red-950/50">
               <Flame className="w-5 h-5 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-serif font-bold text-base sm:text-lg tracking-tight text-white">
+                <span className="font-serif font-extrabold text-lg tracking-tight text-white">
                   CIVIC NEXUS AI
                 </span>
-                <span className="text-[10px] font-mono uppercase px-2 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-800">
-                  EOC COMMAND CONSOLE
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800">
+                  EOC RESPONSE CONSOLE
+                </span>
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  TEAM CODE BLAZE
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-sans">
-                AI Emergency Intelligence & Multi-Agency Response Center · Team CODE BLAZE
+              <p className="text-xs text-slate-400 font-sans mt-0.5">
+                AI Emergency Video Intelligence &amp; Intelligent Traffic Clearance System
               </p>
             </div>
           </div>
 
-          {/* System Telemetry Badges */}
-          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono">
-            {/* Clock */}
-            <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-amber-400 font-bold">
-              🕒 {currentTime} IST
-            </span>
+          {/* Clean Telemetry Status Badges & Controls */}
+          <div className="flex flex-wrap items-center gap-2.5 text-xs">
+            {/* Active SOS Count */}
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-red-950/80 border border-red-500/60 text-red-200 font-bold shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              <span>{stats.activeEmergencyAlerts || alerts.length} Active Emergencies</span>
+            </div>
 
-            {/* Backend SSE Status */}
-            <span className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>SSE Real-Time Sync</span>
-            </span>
+            {/* Cameras Status */}
+            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
+              <Video className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{overview.totalCamerasOnline} CCTV Online</span>
+            </div>
 
-            {/* AI Vision Status */}
-            <span className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800">
-              <Cpu className="w-3 h-3 text-cyan-400" />
-              <span>Vision 2.5 FPS</span>
-            </span>
+            {/* Fleet Status */}
+            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
+              <Truck className="w-3.5 h-3.5 text-amber-400" />
+              <span>{overview.ambulancesEnRoute} Fleet Active</span>
+            </div>
 
-            {/* CCTV Status */}
-            <span className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800">
-              <Video className="w-3 h-3 text-emerald-400" />
-              <span>{overview.totalCamerasOnline} Online / {overview.totalCamerasOffline} Degraded</span>
-            </span>
-
-            {/* Audio Siren Control (Section 7) */}
-            {!audioEnabled ? (
-              <button
-                onClick={() => {
+            {/* Audio Siren Control */}
+            <button
+              onClick={() => {
+                if (!audioEnabled) {
                   enableAudioSystem();
                   triggerAudioSiren();
-                }}
-                className="flex items-center space-x-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-600/30 to-rose-600/30 text-amber-300 border border-amber-500/50 hover:from-amber-600/40 hover:to-rose-600/40 transition text-[11px] font-bold shadow-sm"
-                title="Initialize Web Audio synthesizer"
+                } else {
+                  setAudioMuted(!audioMuted);
+                }
+              }}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border transition text-xs font-bold ${
+                audioMuted
+                  ? 'bg-rose-950/60 border-rose-800 text-rose-300'
+                  : 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
+              }`}
+              title="Toggle Audio Alarm Siren"
+            >
+              {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              <span>{audioMuted ? 'Muted' : 'Alarm Active'}</span>
+            </button>
+
+            {/* Test Alarm Sound Button */}
+            <button
+              onClick={() => triggerAudioSiren()}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
+            >
+              <Siren className={`w-3.5 h-3.5 ${isSirenPlaying ? 'animate-spin' : ''}`} />
+              <span>Test Alarm</span>
+            </button>
+
+            {/* Return to Portal Button */}
+            {onNavigateHome && (
+              <button
+                onClick={onNavigateHome}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition text-xs font-semibold"
+                title="Return to Main Portal"
               >
-                <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Enable & Test Siren</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Main Portal</span>
               </button>
-            ) : (
-              <div className="flex items-center space-x-1.5">
-                <button
-                  onClick={() => setAudioMuted(!audioMuted)}
-                  className={`p-1.5 rounded-lg border transition ${audioMuted ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-emerald-950 text-emerald-300 border-emerald-800'}`}
-                  title={audioMuted ? 'Unmute Audio Siren' : 'Mute Audio Siren'}
-                >
-                  {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                </button>
-
-                {/* Tone Switcher */}
-                <button
-                  onClick={() => {
-                    const nextMode = sirenMode === 'AMBULANCE_HILO' ? 'POLICE_WAIL' : sirenMode === 'POLICE_WAIL' ? 'RAPID_YELP' : 'AMBULANCE_HILO';
-                    setSirenMode(nextMode);
-                    showToast(`Siren tone set to: ${nextMode === 'AMBULANCE_HILO' ? '🚑 108 Ambulance Two-Tone (Hi-Lo)' : nextMode === 'POLICE_WAIL' ? '🚨 Police Rescue Wail' : '⚡ Rapid Staccato Yelp'}`, 'info');
-                    triggerAudioSiren(nextMode);
-                  }}
-                  className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-amber-200 border border-amber-500/40 text-[10px] font-mono font-bold transition flex items-center space-x-1"
-                  title="Click to cycle siren sound pattern: 108 Hi-Lo, Police Wail, or Rapid Yelp"
-                >
-                  <span>Tone: {sirenMode === 'AMBULANCE_HILO' ? '108 Hi-Lo' : sirenMode === 'POLICE_WAIL' ? 'Police Wail' : 'Rapid Yelp'}</span>
-                </button>
-
-                {/* Target Selected Element: Test Siren Button */}
-                <button
-                  onClick={() => triggerAudioSiren()}
-                  className={`px-3 py-1 rounded-lg border font-bold text-xs transition-all duration-200 flex items-center space-x-1.5 shadow-md ${
-                    isSirenPlaying
-                      ? 'bg-gradient-to-r from-red-600 to-rose-700 text-white border-amber-300 animate-pulse shadow-rose-900/60 ring-2 ring-red-500/40'
-                      : 'bg-gradient-to-r from-rose-950 via-slate-900 to-neutral-950 hover:from-rose-900 hover:to-slate-800 text-amber-300 hover:text-white border-rose-600/70'
-                  }`}
-                  title="Test Synthesizer Emergency Siren Tone"
-                >
-                  <Siren className={`w-3.5 h-3.5 text-amber-300 ${isSirenPlaying ? 'animate-spin' : ''}`} />
-                  <span>{isSirenPlaying ? 'Sounding Siren...' : 'Test Siren'}</span>
-                </button>
-              </div>
             )}
-
-            {/* Operating Mode Toggle (Section 16) */}
-            <div className="flex rounded-lg overflow-hidden border border-slate-700">
-              <button
-                onClick={() => setOperatingMode('DEMO')}
-                className={`px-2 py-1 transition ${operatingMode === 'DEMO' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
-              >
-                DEMO MODE
-              </button>
-              <button
-                onClick={() => {
-                  setOperatingMode('LIVE');
-                  showToast('LIVE Integration Mode requires hardware RTSP & AVL gateways.', 'alert');
-                }}
-                className={`px-2 py-1 transition ${operatingMode === 'LIVE' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
-              >
-                LIVE MODE
-              </button>
-            </div>
-
-            {/* Role Session & Sign Out Control */}
-            <div className="ml-1 pl-2 border-l border-slate-800 flex items-center gap-2">
-              <PanelRoleAuth roleId="emergency" />
-              {onNavigateHome && (
-                <button
-                  onClick={onNavigateHome}
-                  className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
-                  title="Return to Main Portal"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Portal</span>
-                </button>
-              )}
-            </div>
           </div>
 
         </div>
       </header>
 
-      {/* ── 3. EMERGENCY SUMMARY KPI METRICS CARDS (Section 1) ───────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+      {/* ── 3. CLEAN USER-FRIENDLY NAVIGATION TABS (4 Clear Functional Modes) ── */}
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-1.5 rounded-3xl bg-slate-950 border border-slate-800 shadow-xl">
           
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-heritage-red/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Active Critical</span>
-            <p className="text-xl font-mono font-extrabold text-rose-700 dark:text-rose-400 mt-1">{overview.activeCriticalEmergencies}</p>
-            <span className="text-[9px] text-rose-500 font-sans">Immediate Action</span>
-          </div>
+          {/* Tab 1: AI Video Emergency Analyzer (Hero Feature) */}
+          <button
+            id="tab-video-intel"
+            onClick={() => setActiveTab('VIDEO_INTEL')}
+            className={`p-3.5 rounded-2xl transition-all flex items-center justify-center space-x-2.5 text-xs font-bold ${
+              activeTab === 'VIDEO_INTEL'
+                ? 'bg-gradient-to-r from-red-600 via-rose-700 to-red-600 text-white shadow-xl shadow-red-950/70 ring-1 ring-amber-400/50'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+            }`}
+          >
+            <Video className="w-5 h-5 text-amber-300 shrink-0" />
+            <div className="text-left">
+              <span className="block font-serif font-bold text-sm leading-none">1. AI Video Analyzer</span>
+              <span className="text-[10px] opacity-80 font-normal">वीडियो इंटेलिजेंस व SOS</span>
+            </div>
+          </button>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-amber-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">High Priority</span>
-            <p className="text-xl font-mono font-extrabold text-amber-700 dark:text-amber-400 mt-1">{overview.highPriorityIncidents}</p>
-            <span className="text-[9px] text-amber-500 font-sans">Triage Queue</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-orange-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Fire & Smoke</span>
-            <p className="text-xl font-mono font-extrabold text-orange-700 dark:text-orange-400 mt-1">{overview.fireAndSmokeAlerts}</p>
-            <span className="text-[9px] text-orange-500 font-sans">Thermal Detections</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-blue-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Road Accidents</span>
-            <p className="text-xl font-mono font-extrabold text-blue-700 dark:text-blue-400 mt-1">{overview.roadAccidentAlerts}</p>
-            <span className="text-[9px] text-blue-500 font-sans">Collision Models</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-purple-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600">Crowd Safety</span>
-            <p className="text-xl font-mono font-extrabold text-purple-700 dark:text-purple-400 mt-1">{overview.crowdSafetyAlerts}</p>
-            <span className="text-[9px] text-purple-500 font-sans">Density Bottlenecks</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-emerald-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">108 Ambulances</span>
-            <p className="text-xl font-mono font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">{overview.ambulancesEnRoute}</p>
-            <span className="text-[9px] text-emerald-500 font-sans">En Route via GPS</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-rose-500/40 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Fire Brigades</span>
-            <p className="text-xl font-mono font-extrabold text-rose-700 dark:text-rose-400 mt-1">{overview.fireBrigadesDispatched}</p>
-            <span className="text-[9px] text-rose-500 font-sans">101 Dispatched</span>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-white dark:bg-heritage-charcoal border border-red-600/60 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">Awaiting Ack</span>
-            <p className="text-xl font-mono font-extrabold text-red-700 dark:text-red-400 mt-1 flex items-center justify-between">
-              <span>{overview.awaitingAcknowledgement}</span>
-              {overview.awaitingAcknowledgement > 0 && <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />}
-            </p>
-            <span className="text-[9px] text-red-500 font-sans">60s Countdown</span>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ── 4. QUICK SIMULATION ACTION STRIP ──────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 w-full">
-        <div className="p-3 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 border border-slate-800 shadow-sm">
-          <div className="flex items-center space-x-2 text-xs">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="font-bold text-amber-200">Interactive Simulation Controls:</span>
-            <span className="text-slate-400 hidden md:inline">Trigger candidate events to verify AI detection, sound sirens, cross-portal sync & deduplication.</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => handleTriggerSimulatedDetection('POSSIBLE_ROAD_ACCIDENT')}
-              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
-            >
-              <Car className="w-3.5 h-3.5" />
-              <span>Simulate Road Crash (CAM-101)</span>
-            </button>
-
-            <button
-              onClick={() => handleTriggerSimulatedDetection('POSSIBLE_FIRE_OR_SMOKE')}
-              className="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
-            >
-              <Flame className="w-3.5 h-3.5" />
-              <span>Simulate Fire Smoke (CAM-103)</span>
-            </button>
-
-            <button
-              onClick={() => handleTriggerSimulatedDetection('CROWD_CONGESTION')}
-              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Simulate Crowd Safety (CAM-105)</span>
-            </button>
-
-            <button
-              onClick={() => setShowManualSosModal(true)}
-              className="px-3 py-1.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5 border border-amber-400/40"
-            >
-              <RadioTower className="w-3.5 h-3.5 text-amber-300" />
-              <span>Broadcast Manual SOS (112)</span>
-            </button>
-
-            <button
-              onClick={handleRunValidationTests}
-              disabled={runningTests}
-              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-              <span>{runningTests ? 'Running Tests…' : 'Run 12 Acceptance Tests'}</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. NAVIGATION TABS ────────────────────────────────────────────────── */}
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 w-full">
-        <div className="flex overflow-x-auto space-x-2 border-b border-heritage-stone dark:border-heritage-charcoal pb-2 scrollbar-none text-xs font-bold">
-          
+          {/* Tab 2: Live Operations & CCTV */}
           <button
             onClick={() => setActiveTab('DASHBOARD')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'DASHBOARD' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
+            className={`p-3.5 rounded-2xl transition-all flex items-center justify-center space-x-2.5 text-xs font-bold ${
+              activeTab === 'DASHBOARD' || activeTab === 'CCTV' || activeTab === 'ALERTS' || activeTab === 'DISPATCH'
+                ? 'bg-slate-800 text-white shadow-xl ring-1 ring-slate-700'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+            }`}
           >
-            <Activity className="w-4 h-4" />
-            <span>Command Center Overview</span>
+            <Activity className="w-5 h-5 text-cyan-400 shrink-0" />
+            <div className="text-left">
+              <span className="block font-serif font-bold text-sm leading-none">2. Live Operations &amp; CCTV</span>
+              <span className="text-[10px] opacity-80 font-normal">अलर्ट व कंट्रोल डेस्क ({alerts.length})</span>
+            </div>
           </button>
 
-          <button
-            onClick={() => setActiveTab('CCTV')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'CCTV' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
-          >
-            <Video className="w-4 h-4" />
-            <span>Live CCTV & AI Vision ({cameras.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ALERTS')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'ALERTS' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
-          >
-            <Siren className="w-4 h-4" />
-            <span>Emergency Alert Center ({alerts.length})</span>
-          </button>
-
+          {/* Tab 3: Live Map & Fleet */}
           <button
             onClick={() => setActiveTab('MAP')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'MAP' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
+            className={`p-3.5 rounded-2xl transition-all flex items-center justify-center space-x-2.5 text-xs font-bold ${
+              activeTab === 'MAP'
+                ? 'bg-slate-800 text-white shadow-xl ring-1 ring-slate-700'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+            }`}
           >
-            <Navigation className="w-4 h-4" />
-            <span>Live Emergency Map & GPS Fleet</span>
+            <Navigation className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="text-left">
+              <span className="block font-serif font-bold text-sm leading-none">3. City Map &amp; Fleet</span>
+              <span className="text-[10px] opacity-80 font-normal">एम्बुलेंस GPS व अस्पताल</span>
+            </div>
           </button>
 
-          <button
-            onClick={() => setActiveTab('DISPATCH')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'DISPATCH' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
-          >
-            <Truck className="w-4 h-4" />
-            <span>Rapid Dispatch Console</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('AI_INTEL')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'AI_INTEL' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>AI Incident Intelligence</span>
-          </button>
-
+          {/* Tab 4: Diagnostics, 10 KPIs & Acceptance Tests */}
           <button
             onClick={() => setActiveTab('TESTS')}
-            className={`px-4 py-2 rounded-xl transition flex items-center space-x-2 shrink-0 ${activeTab === 'TESTS' ? 'bg-heritage-maroon text-heritage-gold shadow-md' : 'text-heritage-aged hover:bg-heritage-stone/40'}`}
+            className={`p-3.5 rounded-2xl transition-all flex items-center justify-center space-x-2.5 text-xs font-bold ${
+              activeTab === 'TESTS'
+                ? 'bg-indigo-700 text-white shadow-xl ring-1 ring-indigo-500'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+            }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>12 Acceptance Tests {testResults.length > 0 && `(${testResults.length}/12)`}</span>
+            <ShieldCheck className="w-5 h-5 text-amber-300 shrink-0" />
+            <div className="text-left">
+              <span className="block font-serif font-bold text-sm leading-none">4. System Stats &amp; Tests</span>
+              <span className="text-[10px] opacity-80 font-normal">10 KPI कार्ड्स व 12 टेस्ट्स</span>
+            </div>
           </button>
 
         </div>
@@ -1784,9 +1656,144 @@ export const EmergencyResponseView: React.FC<EmergencyResponseViewProps> = ({ on
           </div>
         )}
 
-        {/* ── TAB: 12 ACCEPTANCE TESTS (Section 17) ─────────────────────────── */}
+        {/* ── TAB: AI VIDEO INTELLIGENCE & AUTOMATIC SOS ALERT SYSTEM ──────── */}
+        {activeTab === 'VIDEO_INTEL' && (
+          <div className="space-y-0">
+            {/* Panel wrapper matching EOC dark theme */}
+            <div className="p-5 rounded-3xl bg-slate-950 border border-slate-800 shadow-xl">
+              <VideoIntelligencePanel
+                onSosCreated={(alert, incident) => {
+                  // Reload all emergency data so alerts/incidents appear instantly
+                  loadAllEmergencyData();
+                  showToast(
+                    `📹 VIDEO AI SOS CREATED: ${alert?.alertId} · Incident ${incident?.incident_code} broadcast to all portals!`,
+                    'alert'
+                  );
+                }}
+                onTriggerSiren={() => {
+                  if (audioEnabled && !audioMuted) {
+                    triggerAudioSiren('AMBULANCE_HILO');
+                  } else if (!audioEnabled) {
+                    enableAudioSystem();
+                    setTimeout(() => triggerAudioSiren('AMBULANCE_HILO'), 300);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: 4. SYSTEM STATS & ACCEPTANCE TESTS (Section 1 & 17) ───────── */}
         {activeTab === 'TESTS' && (
           <div className="space-y-6">
+            
+            {/* Part 1: Top 10 Live Operational KPI Summary Cards */}
+            <div className="p-5 rounded-3xl bg-slate-950 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-5 h-5 text-amber-400" />
+                  <h4 className="font-serif font-bold text-sm text-white">
+                    10 Live Emergency Summary Metric Indicators
+                  </h4>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
+                  REAL-TIME STATS API
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
+                <div className="p-3 rounded-2xl bg-slate-900 border border-red-500/50 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400">Active Alerts</span>
+                  <p className="text-xl font-mono font-extrabold text-rose-400 mt-1">{stats.activeEmergencyAlerts || alerts.length}</p>
+                  <span className="text-[8px] text-slate-400">Live Alerts</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-red-600/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-red-400">Critical Inc.</span>
+                  <p className="text-xl font-mono font-extrabold text-red-500 mt-1">{stats.criticalIncidents}</p>
+                  <span className="text-[8px] text-slate-400">Level 1 Emergency</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-amber-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">High-Priority</span>
+                  <p className="text-xl font-mono font-extrabold text-amber-400 mt-1">{stats.highPriorityIncidents}</p>
+                  <span className="text-[8px] text-slate-400">Triage Queue</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-cyan-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-400">Queued Videos</span>
+                  <p className="text-xl font-mono font-extrabold text-cyan-400 mt-1">{stats.videosAwaitingAnalysis}</p>
+                  <span className="text-[8px] text-slate-400">Inference Queue</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-indigo-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400">Processing</span>
+                  <p className="text-xl font-mono font-extrabold text-indigo-400 mt-1">{stats.videosCurrentlyProcessing}</p>
+                  <span className="text-[8px] text-slate-400">Vision Engine</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-yellow-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-yellow-400">Unverified</span>
+                  <p className="text-xl font-mono font-extrabold text-yellow-400 mt-1">{stats.incidentsAwaitingVerification}</p>
+                  <span className="text-[8px] text-slate-400">Review Queue</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-emerald-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Ambulances</span>
+                  <p className="text-xl font-mono font-extrabold text-emerald-400 mt-1">{stats.ambulancesDetected}</p>
+                  <span className="text-[8px] text-slate-400">108 Fleet</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-orange-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-orange-400">Fire &amp; Smoke</span>
+                  <p className="text-xl font-mono font-extrabold text-orange-400 mt-1">{stats.fireAndSmokeAlerts}</p>
+                  <span className="text-[8px] text-slate-400">Thermal Incidents</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-blue-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-blue-400">Accidents</span>
+                  <p className="text-xl font-mono font-extrabold text-blue-400 mt-1">{stats.possibleRoadAccidents}</p>
+                  <span className="text-[8px] text-slate-400">Traffic Crash</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-900 border border-purple-500/40 shadow flex flex-col justify-between text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-purple-400">Crowd Safety</span>
+                  <p className="text-xl font-mono font-extrabold text-purple-400 mt-1">{stats.crowdSafetyAlerts}</p>
+                  <span className="text-[8px] text-slate-400">Surge Events</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Part 2: Quick Simulation Triggers Strip */}
+            <div className="p-4 rounded-3xl bg-slate-950 border border-slate-800 text-white space-y-3">
+              <div className="flex items-center space-x-2 text-xs">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="font-bold text-amber-200">Interactive Simulation Triggers (सिमुलेशन टूल्स):</span>
+                <span className="text-slate-400">Generate synthetic incidents to test alarm sounds, cross-portal alerts &amp; route assistance.</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleTriggerSimulatedDetection('POSSIBLE_ROAD_ACCIDENT')}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition flex items-center space-x-1.5"
+                >
+                  <Car className="w-4 h-4" />
+                  <span>Simulate Road Crash (CAM-101)</span>
+                </button>
+                <button
+                  onClick={() => handleTriggerSimulatedDetection('POSSIBLE_FIRE_OR_SMOKE')}
+                  className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow transition flex items-center space-x-1.5"
+                >
+                  <Flame className="w-4 h-4" />
+                  <span>Simulate Fire Smoke (CAM-103)</span>
+                </button>
+                <button
+                  onClick={() => handleTriggerSimulatedDetection('CROWD_CONGESTION')}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow transition flex items-center space-x-1.5"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Simulate Crowd Safety (CAM-105)</span>
+                </button>
+                <button
+                  onClick={() => setShowManualSosModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white font-bold text-xs shadow transition flex items-center space-x-1.5 border border-amber-400/40"
+                >
+                  <RadioTower className="w-4 h-4 text-amber-300" />
+                  <span>Broadcast Manual SOS (112)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Part 3: Automated 12 Acceptance Tests Suite */}
             <div className="p-4 rounded-2xl bg-white dark:bg-heritage-charcoal border border-heritage-stone dark:border-heritage-charcoal flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-serif font-bold text-lg text-heritage-maroon dark:text-heritage-gold">
