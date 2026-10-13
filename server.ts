@@ -169,11 +169,11 @@ app.get(['/api/v1/citizen/my-reports', '/api/v1/reports'], (req: Request, res: R
 // ==========================================
 app.get('/api/v1/report-center/categories', (req: Request, res: Response) => {
   res.json([
-    { id: 'waterlogging', name: 'Waterlogging & Flood Risk', icon: 'Droplets', description: 'Underpass flooding, blocked stormwater drains' },
-    { id: 'pothole', name: 'Pothole & Infrastructure', icon: 'HardHat', description: 'Road damage, cave-ins, open manholes' },
-    { id: 'traffic', name: 'Traffic & Corridor Congestion', icon: 'Navigation', description: 'Signal breakdown, illegal parking blockage' },
-    { id: 'sanitation', name: 'Sanitation & Garbage', icon: 'Trash2', description: 'Garbage dump, uncleared municipal waste' },
-    { id: 'lighting', name: 'Street Lighting & Electrical', icon: 'Lightbulb', description: 'Dark road stretches, transformer fault' },
+    { id: 'waterlogging', code: 'WATERLOGGING_01', name: 'Waterlogging & Flood Risk', group_name: 'Drainage & Stormwater', icon: 'Droplets', description: 'Underpass flooding, blocked stormwater drains', target_department: 'Drainage & Flood Management', default_sla_hours: 12 },
+    { id: 'pothole', code: 'POTHOLE_01', name: 'Pothole & Infrastructure', group_name: 'Roads & Footpaths', icon: 'HardHat', description: 'Road damage, cave-ins, open manholes', target_department: 'Roads & Infrastructure', default_sla_hours: 24 },
+    { id: 'traffic', code: 'TRAFFIC_01', name: 'Traffic & Corridor Congestion', group_name: 'Traffic Police', icon: 'Navigation', description: 'Signal breakdown, illegal parking blockage', target_department: 'Traffic Operations', default_sla_hours: 6 },
+    { id: 'sanitation', code: 'SANITATION_01', name: 'Sanitation & Garbage', group_name: 'Sanitation', icon: 'Trash2', description: 'Garbage dump, uncleared municipal waste', target_department: 'Sanitation & Waste', default_sla_hours: 24 },
+    { id: 'lighting', code: 'LIGHTING_01', name: 'Street Lighting & Electrical', group_name: 'Street Lighting', icon: 'Lightbulb', description: 'Dark road stretches, transformer fault', target_department: 'Street Lighting', default_sla_hours: 18 },
   ]);
 });
 
@@ -309,6 +309,38 @@ app.get('/api/v1/cases/metrics', (req: Request, res: Response) => {
     active_cases: dbStore.reports.filter(r => r.status !== 'RESOLVED').length,
     avg_resolution_hours: 4.2
   });
+});
+
+app.post('/api/v1/reports/:code/verify', (req: Request, res: Response) => {
+  const { department_id, priority, instructions } = req.body;
+  const report = dbStore.reports.find(r => r.report_code === req.params.code || String(r.id) === req.params.code);
+  if (report) {
+    report.status = 'UNDER_REVIEW';
+    const newTask = {
+      id: dbStore.tasks.length + 1,
+      incident_id: report.incident_id || 1,
+      department_id: department_id || 1,
+      assigned_to_worker_id: 2,
+      supervisor_id: 4,
+      title: `Resolve ${report.title}`,
+      instructions: instructions || 'Deploy repair crew to site and upload completion evidence.',
+      priority: priority || 'HIGH',
+      status: 'ASSIGNED' as const,
+      created_at: new Date().toISOString()
+    };
+    dbStore.tasks.unshift(newTask);
+    addAuditLog('officer@civicnexus.gov.in', 'VERIFY_REPORT', 'MUNICIPAL', `Verified report ${report.report_code} and issued work order TSK-${newTask.id}`);
+    return res.json({ message: 'Report verified and work order created', report, task: newTask });
+  }
+  res.status(404).json({ error: 'Report not found' });
+});
+
+app.get('/api/v1/municipal/assets', (req: Request, res: Response) => {
+  res.json(dbStore.municipalAssets);
+});
+
+app.get('/api/v1/municipal/inventory', (req: Request, res: Response) => {
+  res.json(dbStore.inventoryItems);
 });
 
 // ==========================================

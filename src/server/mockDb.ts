@@ -170,6 +170,28 @@ export interface AuditLog {
   timestamp: string;
 }
 
+export interface MunicipalAsset {
+  id: number;
+  asset_code: string;
+  name: string;
+  category: string;
+  ward: string;
+  condition: 'GOOD' | 'FAIR' | 'NEEDS_MAINTENANCE' | 'CRITICAL_FAULT';
+  last_inspected: string;
+  location: string;
+}
+
+export interface InventoryItem {
+  id: number;
+  item_code: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  min_reorder_level: number;
+  status: 'IN_STOCK' | 'LOW_STOCK' | 'CRITICAL_REORDER';
+}
+
 export function createInitialDb() {
   const departments: Department[] = [
     { id: 1, name: "Drainage and Flood Management", code: "MUNICIPAL_DRAINAGE", description: "Stormwater drains, sluice pumps, culverts, and urban waterlogging relief.", contact_email: "drainage@civicnexus.gov.in", contact_phone: "+91 674 2431001", sla_hours: 12 },
@@ -230,6 +252,20 @@ export function createInitialDb() {
     { id: 1, user_email: "commander@civicnexus.gov.in", action: "SYSTEM_INITIALIZED", resource: "CORE_PLATFORM", details: "CIVIC NEXUS AI operational nervous system started.", timestamp: new Date().toISOString() },
   ];
 
+  const municipalAssets: MunicipalAsset[] = [
+    { id: 1, asset_code: "PUMP-BMC-09", name: "Heavy Dewatering Sluice Pump (300 HP)", category: "Drainage Infrastructure", ward: "BMC Ward 28 (North-Central)", condition: "GOOD", last_inspected: new Date().toISOString(), location: "Rasulgarh Underpass Sluice Gate" },
+    { id: 2, asset_code: "CULVERT-BMC-14", name: "Concrete Box Stormwater Culvert 2.5m", category: "Drainage Infrastructure", ward: "BMC Ward 28 (North-Central)", condition: "NEEDS_MAINTENANCE", last_inspected: new Date().toISOString(), location: "NH-16 Service Channel" },
+    { id: 3, asset_code: "LIGHT-BMC-102", name: "High-Mast 250W LED Transformer Unit", category: "Street Lighting", ward: "BMC Ward 14 (Old Town)", condition: "GOOD", last_inspected: new Date().toISOString(), location: "Lingaraj Temple Approach Road" },
+    { id: 4, asset_code: "ROAD-BMC-204", name: "Arterial Flyover Expansion Joint", category: "Road Infrastructure", ward: "BMC Ward 42 (Patia)", condition: "FAIR", last_inspected: new Date().toISOString(), location: "Jayadev Vihar Flyover Span 4" },
+  ];
+
+  const inventoryItems: InventoryItem[] = [
+    { id: 1, item_code: "MAT-ASP-50", name: "Cold-Mix Asphalt Patching Compound", category: "Road Repair", quantity: 450, unit: "Bags (25kg)", min_reorder_level: 100, status: "IN_STOCK" },
+    { id: 2, item_code: "MAT-PVC-300", name: "Reinforced 300mm PVC Drain Conduit", category: "Drainage", quantity: 18, unit: "Pipes (6m)", min_reorder_level: 25, status: "LOW_STOCK" },
+    { id: 3, item_code: "MAT-LED-150", name: "Smart Photocell 150W LED Fixture", category: "Lighting", quantity: 85, unit: "Units", min_reorder_level: 30, status: "IN_STOCK" },
+    { id: 4, item_code: "MAT-DESILT-01", name: "Heavy Duty Hydraulic Drain Desilting Rake", category: "Sanitation", quantity: 4, unit: "Sets", min_reorder_level: 5, status: "CRITICAL_REORDER" },
+  ];
+
   const incidents: Incident[] = [
     {
       id: 1,
@@ -271,7 +307,24 @@ export function createInitialDb() {
     }
   ];
 
-  const tasks: Task[] = [];
+  const tasks: Task[] = [
+    {
+      id: 1,
+      incident_id: 1,
+      department_id: 1,
+      assigned_to_worker_id: 2,
+      supervisor_id: 4,
+      title: "Deploy Dewatering Pump at Rasulgarh Underpass",
+      instructions: "Deploy 300 HP dewatering suction pump to drain 40cm waterlogging at NH-16 underpass immediately.",
+      priority: "HIGH",
+      status: "IN_PROGRESS",
+      started_at: new Date().toISOString(),
+      worker_notes: "Sluice gate unblocked. Dewatering pump operating at 120 L/min capacity.",
+      completion_proof_url: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800",
+      created_at: new Date().toISOString()
+    }
+  ];
+
   const emergencyCases: EmergencyCase[] = [];
   const roadRestrictions: RoadRestriction[] = [];
 
@@ -283,6 +336,8 @@ export function createInitialDb() {
     tourismPlaces,
     notifications,
     auditLogs,
+    municipalAssets,
+    inventoryItems,
     incidents,
     reports,
     tasks,

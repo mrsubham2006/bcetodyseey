@@ -184,14 +184,6 @@ export const App: React.FC = () => {
             >
               Unified Access Portal
             </button>
-
-            <button
-              onClick={() => setIsFlagshipOpen(true)}
-              className="flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold whitespace-nowrap rounded bg-gradient-to-r from-heritage-gold to-heritage-orange text-heritage-charcoal border border-heritage-gold/60 shadow-gold-glow hover:brightness-110 transition-all duration-150 animate-pulse hover:animate-none"
-            >
-              <Zap className="w-3.5 h-3.5 shrink-0 text-heritage-charcoal" />
-              <span>18-Step Walkthrough</span>
-            </button>
           </div>
 
         </div>

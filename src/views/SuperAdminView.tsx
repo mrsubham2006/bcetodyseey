@@ -64,10 +64,14 @@ export const SuperAdminView: React.FC = () => {
     }
   };
 
-  const filteredLogs = auditLogs.filter(l =>
-    l.action.toLowerCase().includes(searchAudit.toLowerCase()) ||
-    l.user.toLowerCase().includes(searchAudit.toLowerCase())
-  );
+  const filteredLogs = auditLogs.filter(l => {
+    if (!l) return false;
+    const searchLower = (searchAudit || '').toLowerCase();
+    const actionMatch = l.action ? String(l.action).toLowerCase().includes(searchLower) : false;
+    const userMatch = (l as any).user ? String((l as any).user).toLowerCase().includes(searchLower) : false;
+    const detailsMatch = l.details ? String(l.details).toLowerCase().includes(searchLower) : false;
+    return actionMatch || userMatch || detailsMatch;
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">

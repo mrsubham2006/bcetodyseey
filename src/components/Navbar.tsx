@@ -84,54 +84,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenFlagship, onOpenRoleSwitch
           </div>
         </div>
 
-        {/* Center: Module Switcher & Flagship Launch Button */}
-        <div className="hidden md:flex items-center space-x-3">
-          {onSelectView && (
-            <div className="relative">
-              <button
-                onClick={() => setShowModules(!showModules)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-md border border-heritage-stone dark:border-heritage-charcoal bg-white/80 dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory text-xs font-semibold hover:border-heritage-gold transition-colors shadow-sm"
-              >
-                <Grid className="w-3.5 h-3.5 text-heritage-maroon dark:text-heritage-gold" />
-                <span>Modules & Views</span>
-                <ChevronDown className="w-3.5 h-3.5 text-heritage-aged" />
-              </button>
-
-              {showModules && (
-                <div className="absolute left-0 mt-2 w-56 rounded-xl bg-heritage-ivory dark:bg-heritage-charcoal-dark border border-heritage-stone dark:border-heritage-charcoal shadow-heritage-lg z-50 p-2 divide-y divide-heritage-stone/30">
-                  <div className="py-1">
-                    {MODULE_OPTIONS.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          onSelectView(m.id);
-                          setShowModules(false);
-                        }}
-                        className={`w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
-                          activeView === m.id
-                            ? 'bg-heritage-maroon text-heritage-gold font-semibold'
-                            : 'text-heritage-charcoal dark:text-heritage-ivory hover:bg-heritage-stone/40 dark:hover:bg-heritage-charcoal'
-                        }`}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={onOpenFlagship}
-            className="group flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-heritage-maroon to-heritage-red hover:from-heritage-maroon-dark hover:to-heritage-red text-white text-xs font-semibold shadow-heritage transition-all duration-200 border border-heritage-gold/40 animate-pulse hover:animate-none"
-          >
-            <Zap className="w-3.5 h-3.5 text-heritage-gold" />
-            <span>{language === 'en' ? "Flagship 18-Step Scenario" : "୧୮-ସ୍ତରୀୟ ଫ୍ଲାଗସିପ୍ ପ୍ରଦର୍ଶନ"}</span>
-            <span className="px-1.5 py-0.2 bg-white/20 rounded text-[10px]">LIVE</span>
-          </button>
-        </div>
-
         {/* Right: Controls & Persona Profile */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Demo Mode Badge */}
@@ -215,24 +167,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenFlagship, onOpenRoleSwitch
               </div>
             )}
           </div>
-
-          {/* 1-Click Role Switcher Pill */}
-          <button
-            onClick={onOpenRoleSwitcher}
-            className="flex items-center space-x-2 pl-2 pr-3 py-1 rounded-full bg-heritage-stone/50 dark:bg-heritage-charcoal border border-heritage-gold/50 hover:border-heritage-gold transition-colors text-xs font-medium text-heritage-charcoal dark:text-heritage-ivory"
-          >
-            <div className="w-6 h-6 rounded-full bg-heritage-maroon text-heritage-gold flex items-center justify-center font-bold text-[10px]">
-              {role.charAt(0)}
-            </div>
-            <div className="text-left hidden sm:block">
-              <p className="text-[11px] font-semibold leading-tight text-heritage-maroon dark:text-heritage-gold">
-                {language === 'en' ? roleLabels[role].en : roleLabels[role].or}
-              </p>
-              <p className="text-[9px] text-heritage-aged leading-none">{user?.full_name?.split(' ')[0]}</p>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-heritage-aged" />
-          </button>
-
         </div>
       </div>
     </header>

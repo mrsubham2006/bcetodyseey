@@ -426,7 +426,7 @@ const ReportCenter: React.FC = () => {
 
   const filteredCats = CATEGORIES.map(g => ({
     ...g,
-    items: g.items.filter(i => !catSearch || i.toLowerCase().includes(catSearch.toLowerCase()))
+    items: g.items.filter(i => !catSearch || (i ? String(i).toLowerCase().includes(catSearch.toLowerCase()) : false))
   })).filter(g => g.items.length > 0);
 
   const handleGPS = () => {

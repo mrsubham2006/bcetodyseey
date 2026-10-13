@@ -216,3 +216,13 @@ export interface AnalyticsData {
   by_department: { name: string; code: string; incidents: number }[];
   timestamp: string;
 }
+
+export interface AuditLog {
+  id: number;
+  action: string;
+  actor: string;
+  user_email?: string;
+  details: string;
+  timestamp: string;
+}
+
