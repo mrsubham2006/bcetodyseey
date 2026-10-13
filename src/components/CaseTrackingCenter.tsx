@@ -364,6 +364,55 @@ export const CaseTrackingCenter: React.FC = () => {
                 <span className="text-heritage-blue font-semibold">{caseDetail.next_step}</span>
               </div>
             </div>
+
+            {/* ASSIGNED FIELD WORKER DISCLOSURE CARD (Requirement Section 17) */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-heritage-maroon/5 via-heritage-stone/20 to-heritage-maroon/5 border border-heritage-gold/50 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-heritage-stone/40">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 rounded-lg bg-heritage-maroon text-heritage-gold">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-heritage-gold uppercase tracking-wider block">
+                      ASSIGNED FIELD WORKER
+                    </span>
+                    <h4 className="font-serif font-bold text-sm text-heritage-maroon dark:text-heritage-gold">
+                      Bikash Mohapatra (Crew #4)
+                    </h4>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-heritage-maroon text-white shadow-sm">
+                  {caseDetail.status === 'AWAITING_CITIZEN' || caseDetail.status === 'COMPLETED' || caseDetail.status === 'RESOLVED' ? 'Work Completed' : 'Task In Progress'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-heritage-aged uppercase block">Official Worker ID</span>
+                  <span className="font-mono font-semibold text-heritage-charcoal dark:text-heritage-ivory">FW-1024</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-heritage-aged uppercase block">Department</span>
+                  <span className="font-semibold text-heritage-charcoal dark:text-heritage-ivory">{caseDetail.department_name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-heritage-aged uppercase block">Official Work Contact</span>
+                  <a href="tel:+919437123456" className="font-mono font-semibold text-heritage-blue hover:underline flex items-center space-x-1">
+                    <PhoneCall className="w-3 h-3" />
+                    <span>+91 94371 23456</span>
+                  </a>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-heritage-aged uppercase block">Assignment Status</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">Arrived & Dewatering Active</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-heritage-stone/30 flex items-center justify-between text-[11px] text-heritage-aged">
+                <span>Latest Public Progress Update: Sluice gate unblocked. Dewatering pump operating at 120 L/min capacity.</span>
+                <span className="font-mono text-[10px]">Official Work Unit Disclosed</span>
+              </div>
+            </div>
           </div>
 
           {/* ── SCREEN D: BEFORE & AFTER EVIDENCE COMPARISON CARDS ───────────── */}

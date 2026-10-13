@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Incident, Hospital, CameraSource, RoadRestriction, Department, AnalyticsData } from '../types';
 import { SmartCityMap } from '../components/SmartCityMap';
 import { KonarkWheelIcon } from '../components/OdishaMotifs';
+import { PanelRoleAuth } from '../components/PanelRoleAuth';
 import {
   Activity,
   AlertTriangle,
@@ -73,6 +74,14 @@ export const CommandCenterView: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    const handleSync = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('civic_sync_event', handleSync);
+    return () => {
+      window.removeEventListener('civic_sync_event', handleSync);
+    };
   }, []);
 
   const handleSelectIncident = async (inc: Incident) => {
@@ -162,14 +171,17 @@ export const CommandCenterView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={fetchDashboardData}
-          disabled={loading}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-heritage-stone dark:border-heritage-charcoal bg-white dark:bg-heritage-charcoal text-xs font-semibold text-heritage-charcoal dark:text-heritage-ivory hover:border-heritage-gold transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Sync Operations</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <PanelRoleAuth roleId="command" />
+          <button
+            onClick={fetchDashboardData}
+            disabled={loading}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-heritage-stone dark:border-heritage-charcoal bg-white dark:bg-heritage-charcoal text-xs font-semibold text-heritage-charcoal dark:text-heritage-ivory hover:border-heritage-gold transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Sync Operations</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Operational Statistics (KPIs) */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { useUnifiedAuth, RoleId, DEMO_USER_PROFILES } from '../context/UnifiedAuthContext';
 import { UserRole } from '../types';
 import {
   Users,
@@ -25,6 +26,7 @@ interface RoleSwitcherModalProps {
 
 export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose, onSelectView }) => {
   const { role: currentRole, loginAsRole, language } = useApp();
+  const { loginRole } = useUnifiedAuth();
 
   if (!isOpen) return null;
 
@@ -150,8 +152,25 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, on
     },
   ];
 
+  const roleIdMap: Partial<Record<UserRole, RoleId>> = {
+    CITIZEN: 'citizen',
+    FIELD_WORKER: 'field_worker',
+    DEPARTMENT_OFFICER: 'municipal',
+    DEPARTMENT_SUPERVISOR: 'municipal',
+    CITY_COMMANDER: 'command',
+    EMERGENCY_COORDINATOR: 'emergency',
+    SUPER_ADMIN: 'admin',
+  };
+
   const handleSelect = async (r: UserRole, view: string) => {
     await loginAsRole(r);
+    const unifiedRoleId = roleIdMap[r];
+    if (unifiedRoleId) {
+      const demoUser = DEMO_USER_PROFILES[unifiedRoleId];
+      if (demoUser) {
+        loginRole(unifiedRoleId, demoUser, `demo_token_${unifiedRoleId}`);
+      }
+    }
     if (onSelectView) {
       onSelectView(view);
     }

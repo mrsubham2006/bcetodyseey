@@ -70,7 +70,7 @@ export interface Incident {
   category: string;
   description: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  status: 'REPORTED' | 'VERIFIED' | 'ASSIGNED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'RESOLVED' | 'CLOSED';
+  status: 'REPORTED' | 'VERIFIED' | 'ASSIGNED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'RESOLVED' | 'CLOSED' | 'REJECTED';
   address: string;
   latitude: number;
   longitude: number;
@@ -82,23 +82,74 @@ export interface Incident {
   updated_at: string;
 }
 
+export interface TaskProgressUpdate {
+  id: number;
+  task_id: number;
+  status: string;
+  notes: string;
+  blocker_reported?: boolean;
+  photo_url?: string;
+  created_at: string;
+}
+
+export interface TaskHistoryEvent {
+  id: number;
+  task_id: number;
+  event_type: string;
+  actor_role: string;
+  actor_name: string;
+  message: string;
+  created_at: string;
+}
+
 export interface Task {
   id: number;
   incident_id: number;
   department_id: number;
+  department_name?: string;
   assigned_to_worker_id?: number;
+  worker_name?: string;
+  worker_phone?: string;
+  worker_code?: string;
   supervisor_id?: number;
+  supervisor_name?: string;
   title: string;
+  category?: string;
+  description?: string;
   instructions?: string;
   priority: string;
-  status: 'CREATED' | 'ASSIGNED' | 'ACCEPTED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'COMPLETED' | 'REJECTED';
+  status: 'CREATED' | 'ASSIGNED' | 'ACCEPTED' | 'ON_THE_WAY' | 'ARRIVED' | 'IN_PROGRESS' | 'PENDING_VERIFICATION' | 'COMPLETED' | 'REJECTED' | 'RETURNED' | 'CANCELLED';
+  rejection_reason?: string;
+  rejection_notes?: string;
   deadline?: string;
   started_at?: string;
+  accepted_at?: string;
+  on_the_way_at?: string;
+  arrived_at?: string;
   completed_at?: string;
+  submitted_at?: string;
+  verified_at?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  checkin_latitude?: number;
+  checkin_longitude?: number;
+  checkin_distance_meters?: number;
+  checkin_within_radius?: boolean;
+  before_photo_url?: string;
+  before_photo_desc?: string;
+  after_photo_url?: string;
+  after_photo_desc?: string;
   worker_notes?: string;
+  completion_summary?: string;
+  materials_used?: string;
+  equipment_required?: string;
   completion_proof_url?: string;
   supervisor_feedback?: string;
+  progress_updates?: TaskProgressUpdate[];
+  history?: TaskHistoryEvent[];
   created_at: string;
+  updated_at?: string;
 }
 
 export interface EmergencyCase {
@@ -224,5 +275,141 @@ export interface AuditLog {
   user_email?: string;
   details: string;
   timestamp: string;
+}
+
+// ==========================================
+// AI EMERGENCY COMMAND CENTER TYPES
+// ==========================================
+
+export type DetectionType =
+  | 'POSSIBLE_FIRE_OR_SMOKE'
+  | 'POSSIBLE_ROAD_ACCIDENT'
+  | 'CROWD_CONGESTION'
+  | 'POTENTIAL_CROWD_SAFETY_RISK'
+  | 'AMBULANCE_108_IN_TRANSIT'
+  | 'FIRE_ENGINE_IN_TRANSIT'
+  | 'ROADWAY_OBSTRUCTION';
+
+export type VerificationStatus =
+  | 'AI-DETECTED'
+  | 'AWAITING-VERIFICATION'
+  | 'VERIFIED'
+  | 'FALSE-ALARM'
+  | 'RESOLVED';
+
+export type EmergencySeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIONAL';
+
+export interface BoundingBoxDetection {
+  label: string;
+  confidence: number;
+  x: number; // percentage 0-100
+  y: number; // percentage 0-100
+  width: number;
+  height: number;
+  color: string;
+  trackId?: string;
+}
+
+export interface AIDetectionEvent {
+  candidateId: string;
+  cameraId: number;
+  cameraCode: string;
+  locationName: string;
+  latitude: number;
+  longitude: number;
+  detectionType: DetectionType;
+  confidenceScore: number;
+  firstDetectedAt: string;
+  lastDetectedAt: string;
+  evidenceReferences: string[];
+  locationReference: string;
+  verificationStatus: VerificationStatus;
+  modelVersion: string;
+  processingStatus: 'STREAMING' | 'ANALYZING' | 'STABLE' | 'DEGRADED';
+  incidentId?: number;
+  boundingBoxes: BoundingBoxDetection[];
+  estimatedVehicleCount?: number;
+  notes?: string;
+}
+
+export interface EmergencyAlert {
+  alertId: string;
+  incidentId: number;
+  candidateId?: string;
+  emergencyType: string;
+  severity: EmergencySeverity;
+  alertStatus: 'NEW' | 'ACKNOWLEDGED' | 'ESCALATED' | 'DISPATCHED' | 'RESOLVED' | 'FALSE_ALARM';
+  verificationStatus: VerificationStatus;
+  createdAt: string;
+  acknowledgementDeadline: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  escalated: boolean;
+  escalationLevel: number;
+  escalationLog?: { level: number; notifiedRole: string; timestamp: string; reason: string }[];
+  cameraCode?: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  confidenceScore: number;
+  recommendedAction: string;
+  soundTriggered: boolean;
+  assignedUnitId?: string;
+  assignedDepartmentName?: string;
+  summaryAi?: string;
+}
+
+export interface EmergencyVehicle {
+  id: string;
+  vehicleType: 'AMBULANCE_108' | 'FIRE_ENGINE' | 'POLICE_PATROL' | 'DISASTER_RESCUE';
+  callSign: string;
+  licensePlate: string;
+  baseStationName: string;
+  driverName: string;
+  contactNumber: string;
+  currentStatus: 'ON_PATROL' | 'DISPATCHED' | 'EN_ROUTE' | 'ON_SCENE' | 'RETURNING' | 'AVAILABLE';
+  latitude: number;
+  longitude: number;
+  speedKmh: number;
+  heading: number;
+  fuelPercent: number;
+  assignedIncidentId?: number;
+  destinationHospitalName?: string;
+  etaMinutes?: number;
+  lastGpsUpdate: string;
+  isDemo: boolean;
+}
+
+export interface EmergencyResponseDispatch {
+  responseId: string;
+  incidentId: number;
+  alertId?: string;
+  responseType: 'AMBULANCE' | 'FIRE_BRIGADE' | 'POLICE_ESCORT' | 'MUNICIPAL_DISASTER_CREW';
+  assignedUnitId: string;
+  assignedUnitName: string;
+  dispatchedBy: string;
+  dispatchedAt: string;
+  responseStatus: 'DISPATCHED' | 'EN_ROUTE' | 'ON_SCENE' | 'PATIENT_LOADED' | 'COMPLETED' | 'CANCELLED';
+  arrivedAt?: string;
+  resolvedAt?: string;
+  etaMinutes: number;
+  responderNotes?: string;
+  isDemo: boolean;
+}
+
+export interface EmergencyOverviewStats {
+  activeCriticalEmergencies: number;
+  highPriorityIncidents: number;
+  fireAndSmokeAlerts: number;
+  roadAccidentAlerts: number;
+  crowdSafetyAlerts: number;
+  ambulancesEnRoute: number;
+  fireBrigadesDispatched: number;
+  awaitingAcknowledgement: number;
+  totalCamerasOnline: number;
+  totalCamerasOffline: number;
+  backendConnected: boolean;
+  sseSyncActive: boolean;
+  audioAlertsEnabled: boolean;
 }
 

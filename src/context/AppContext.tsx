@@ -10,12 +10,15 @@ interface AppContextType {
   notifications: NotificationItem[];
   unreadNotifsCount: number;
   toast: { message: string; type: 'info' | 'success' | 'alert' | 'error' } | null;
+  liveSyncConnected: boolean;
+  lastSyncEvent: any | null;
   loginAsRole: (role: UserRole) => Promise<void>;
   logout: () => void;
   toggleLanguage: () => void;
   toggleTheme: () => void;
   showToast: (message: string, type?: 'info' | 'success' | 'alert' | 'error') => void;
   markNotifAsRead: (id: number) => void;
+  triggerGlobalRefresh: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -27,12 +30,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'alert' | 'error' } | null>(null);
+  const [liveSyncConnected, setLiveSyncConnected] = useState<boolean>(false);
+  const [lastSyncEvent, setLastSyncEvent] = useState<any | null>(null);
 
   // Default commander profile on start for smooth presentation
   useEffect(() => {
     loginAsRole('CITY_COMMANDER');
     fetchNotifications();
+
+    // Setup Real-Time Server-Sent Events (SSE) Bus
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/v1/sync/events');
+
+      eventSource.onopen = () => {
+        setLiveSyncConnected(true);
+      };
+
+      eventSource.onmessage = (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          setLastSyncEvent(parsed);
+          fetchNotifications();
+
+          // Dispatch window-level event for any active view to auto-refresh
+          window.dispatchEvent(new CustomEvent('civic_sync_event', { detail: parsed }));
+
+          // Show subtle notification for critical cross-portal events
+          if (parsed.eventType && parsed.eventType !== 'connection.established') {
+            const label = parsed.eventType.replace('_', ' ').toUpperCase();
+            showToast(`Live Sync: ${label}`, 'info');
+          }
+        } catch (err) {
+          console.warn("SSE parse error:", err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        setLiveSyncConnected(false);
+      };
+    } catch (err) {
+      console.warn("EventSource setup skipped:", err);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, []);
+
+  const triggerGlobalRefresh = () => {
+    fetchNotifications();
+    window.dispatchEvent(new CustomEvent('civic_sync_event', { detail: { eventType: 'manual.refresh' } }));
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -119,6 +170,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         toggleTheme,
         showToast,
         markNotifAsRead,
+        liveSyncConnected,
+        lastSyncEvent,
+        triggerGlobalRefresh,
       }}
     >
       {children}

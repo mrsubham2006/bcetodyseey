@@ -25,7 +25,12 @@ import {
   Flame, Hospital, Navigation, Camera, CloudRain, Compass,
   ShieldCheck, Zap, KeyRound
 } from 'lucide-react';
+import { MunicipalAuthView } from './views/MunicipalAuthView';
+import { FieldWorkerAuthView } from './views/FieldWorkerAuthView';
+import { useUnifiedAuth } from './context/UnifiedAuthContext';
 import { UnifiedAccessPortalView } from './views/UnifiedAccessPortalView';
+import { UnifiedAuthManager } from './components/UnifiedAuthManager';
+import { LoginModal } from './components/LoginModal';
 
 const NAV_ITEMS = [
   { id: 'landing',       labelEn: 'Home',            icon: Home },
@@ -47,24 +52,71 @@ const NAV_ITEMS = [
 export const App: React.FC = () => {
   const { toast, language } = useApp();
   const { isAuthenticated: isCitizenAuthenticated } = useCitizen();
+  const { isRoleAuthenticated } = useUnifiedAuth();
   const [activeView, setActiveView] = useState<string>('landing');
   const [citizenAuthTab, setCitizenAuthTab] = useState<'register' | 'login'>('register');
+  const [municipalAuthTab, setMunicipalAuthTab] = useState<'login' | 'signup' | 'forgot-password' | 'pending-approval'>('login');
   const [isFlagshipOpen, setIsFlagshipOpen] = useState<boolean>(false);
   const [isRoleSwitcherOpen, setIsRoleSwitcherOpen] = useState<boolean>(false);
 
-  // Requirement 1 & 15: Citizen navigation handling
+  // Navigation handling
   const handleNavClick = (viewId: string) => {
     if (viewId === 'citizen') {
-      if (isCitizenAuthenticated) {
-        // Authenticated citizen -> go directly to citizen dashboard
+      if (isCitizenAuthenticated || isRoleAuthenticated('citizen')) {
         setActiveView('citizen_dashboard');
       } else {
-        // Not authenticated -> open /citizen/auth with Register tab by default
-        setCitizenAuthTab('register');
+        setCitizenAuthTab('login');
         setActiveView('citizen_auth');
       }
       return;
     }
+
+    if (viewId === 'municipal') {
+      if (isRoleAuthenticated('municipal')) {
+        setActiveView('municipal');
+      } else {
+        setMunicipalAuthTab('login');
+        setActiveView('municipal_auth');
+      }
+      return;
+    }
+
+    if (viewId === 'field_worker') {
+      if (isRoleAuthenticated('field_worker')) {
+        setActiveView('field_worker');
+      } else {
+        setActiveView('field_worker_auth');
+      }
+      return;
+    }
+
+    if (viewId === 'command') {
+      if (isRoleAuthenticated('command')) {
+        setActiveView('command');
+      } else {
+        setActiveView('command_auth');
+      }
+      return;
+    }
+
+    if (viewId === 'emergency') {
+      if (isRoleAuthenticated('emergency')) {
+        setActiveView('emergency');
+      } else {
+        setActiveView('emergency_auth');
+      }
+      return;
+    }
+
+    if (viewId === 'admin') {
+      if (isRoleAuthenticated('admin')) {
+        setActiveView('admin');
+      } else {
+        setActiveView('admin_auth');
+      }
+      return;
+    }
+
     setActiveView(viewId);
   };
 
@@ -77,11 +129,42 @@ export const App: React.FC = () => {
           <UnifiedAccessPortalView
             onSelectPanel={(panel) => {
               if (panel.id === 'citizen') {
-                if (isCitizenAuthenticated) {
+                if (isCitizenAuthenticated || isRoleAuthenticated('citizen')) {
                   setActiveView('citizen_dashboard');
                 } else {
-                  setCitizenAuthTab('register');
+                  setCitizenAuthTab('login');
                   setActiveView('citizen_auth');
+                }
+              } else if (panel.id === 'municipal') {
+                if (isRoleAuthenticated('municipal')) {
+                  setActiveView('municipal');
+                } else {
+                  setMunicipalAuthTab('login');
+                  setActiveView('municipal_auth');
+                }
+              } else if (panel.id === 'field_worker') {
+                if (isRoleAuthenticated('field_worker')) {
+                  setActiveView('field_worker');
+                } else {
+                  setActiveView('field_worker_auth');
+                }
+              } else if (panel.id === 'command') {
+                if (isRoleAuthenticated('command')) {
+                  setActiveView('command');
+                } else {
+                  setActiveView('command_auth');
+                }
+              } else if (panel.id === 'emergency') {
+                if (isRoleAuthenticated('emergency')) {
+                  setActiveView('emergency');
+                } else {
+                  setActiveView('emergency_auth');
+                }
+              } else if (panel.id === 'admin') {
+                if (isRoleAuthenticated('admin')) {
+                  setActiveView('admin');
+                } else {
+                  setActiveView('admin_auth');
                 }
               } else {
                 setActiveView(panel.targetView);
@@ -92,7 +175,7 @@ export const App: React.FC = () => {
       case 'citizen':
       case 'citizen_dashboard':
         // Protected route check: if unauthenticated, redirect to auth
-        if (!isCitizenAuthenticated) {
+        if (!isCitizenAuthenticated && !isRoleAuthenticated('citizen')) {
           return (
             <CitizenAuthView
               initialTab={citizenAuthTab}
@@ -103,7 +186,7 @@ export const App: React.FC = () => {
         return <CitizenPortalView />;
       case 'citizen_auth':
         // If already authenticated, redirect directly to dashboard
-        if (isCitizenAuthenticated) {
+        if (isCitizenAuthenticated || isRoleAuthenticated('citizen')) {
           return <CitizenPortalView />;
         }
         return (
@@ -113,15 +196,108 @@ export const App: React.FC = () => {
           />
         );
       case 'command':
+        if (!isRoleAuthenticated('command')) {
+          return (
+            <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+              <LoginModal
+                isOpen={true}
+                role="command"
+                onClose={() => setActiveView('landing')}
+                onSuccess={() => setActiveView('command')}
+              />
+            </div>
+          );
+        }
         return <CommandCenterView />;
+      case 'command_auth':
+        if (isRoleAuthenticated('command')) {
+          return <CommandCenterView />;
+        }
+        return (
+          <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+            <LoginModal
+              isOpen={true}
+              role="command"
+              onClose={() => setActiveView('landing')}
+              onSuccess={() => setActiveView('command')}
+            />
+          </div>
+        );
       case 'ai_intelligence':
         return <AIIntelligenceView />;
       case 'municipal':
+        // Protected route check for Municipal Department
+        if (!isRoleAuthenticated('municipal')) {
+          return (
+            <MunicipalAuthView
+              initialTab={municipalAuthTab}
+              onAuthenticated={() => setActiveView('municipal')}
+              onNavigateHome={() => setActiveView('landing')}
+            />
+          );
+        }
         return <MunicipalView />;
+      case 'municipal_auth':
+        if (isRoleAuthenticated('municipal')) {
+          return <MunicipalView />;
+        }
+        return (
+          <MunicipalAuthView
+            initialTab={municipalAuthTab}
+            onAuthenticated={() => setActiveView('municipal')}
+            onNavigateHome={() => setActiveView('landing')}
+          />
+        );
       case 'field_worker':
+        if (!isRoleAuthenticated('field_worker')) {
+          return (
+            <FieldWorkerAuthView
+              initialTab="login"
+              onAuthenticated={() => setActiveView('field_worker')}
+              onNavigateHome={() => setActiveView('landing')}
+            />
+          );
+        }
         return <FieldWorkerMobileView />;
+      case 'field_worker_auth':
+        if (isRoleAuthenticated('field_worker')) {
+          return <FieldWorkerMobileView />;
+        }
+        return (
+          <FieldWorkerAuthView
+            initialTab="login"
+            onAuthenticated={() => setActiveView('field_worker')}
+            onNavigateHome={() => setActiveView('landing')}
+          />
+        );
       case 'emergency':
-        return <EmergencyResponseView />;
+        if (!isRoleAuthenticated('emergency')) {
+          return (
+            <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+              <LoginModal
+                isOpen={true}
+                role="emergency"
+                onClose={() => setActiveView('landing')}
+                onSuccess={() => setActiveView('emergency')}
+              />
+            </div>
+          );
+        }
+        return <EmergencyResponseView onNavigateHome={() => setActiveView('landing')} />;
+      case 'emergency_auth':
+        if (isRoleAuthenticated('emergency')) {
+          return <EmergencyResponseView onNavigateHome={() => setActiveView('landing')} />;
+        }
+        return (
+          <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+            <LoginModal
+              isOpen={true}
+              role="emergency"
+              onClose={() => setActiveView('landing')}
+              onSuccess={() => setActiveView('emergency')}
+            />
+          </div>
+        );
       case 'hospitals':
         return <HospitalDeskView />;
       case 'traffic':
@@ -133,9 +309,35 @@ export const App: React.FC = () => {
       case 'tourism':
         return <TourismView />;
       case 'admin':
+        if (!isRoleAuthenticated('admin')) {
+          return (
+            <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+              <LoginModal
+                isOpen={true}
+                role="admin"
+                onClose={() => setActiveView('landing')}
+                onSuccess={() => setActiveView('admin')}
+              />
+            </div>
+          );
+        }
         return <SuperAdminView />;
+      case 'admin_auth':
+        if (isRoleAuthenticated('admin')) {
+          return <SuperAdminView />;
+        }
+        return (
+          <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-10rem)]">
+            <LoginModal
+              isOpen={true}
+              role="admin"
+              onClose={() => setActiveView('landing')}
+              onSuccess={() => setActiveView('admin')}
+            />
+          </div>
+        );
       default:
-        return <LandingView onExplore={(v) => setActiveView(v)} onOpenFlagship={() => setIsFlagshipOpen(true)} />;
+        return <LandingView onExplore={(v) => handleNavClick(v)} onOpenFlagship={() => setIsFlagshipOpen(true)} />;
     }
   };
 
@@ -206,15 +408,33 @@ export const App: React.FC = () => {
         onSelectView={(v) => setActiveView(v)}
       />
 
+      {/* Global Unified Auth Manager Floating Widget for 6-Role Session Isolation */}
+      <UnifiedAuthManager
+        onNavigateToPanel={(roleId) => {
+          const navMap: Record<string, string> = {
+            citizen: 'citizen_dashboard',
+            municipal: 'municipal',
+            field_worker: 'field_worker',
+            command: 'command',
+            emergency: 'emergency',
+            admin: 'admin',
+          };
+          if (navMap[roleId]) {
+            setActiveView(navMap[roleId]);
+          }
+        }}
+        isFloatingWidget={true}
+      />
+
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-5 right-5 z-50 flex items-center space-x-2 px-4 py-3 rounded-2xl bg-heritage-maroon text-white border border-heritage-gold shadow-heritage-lg text-xs font-semibold animate-slide-up">
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-heritage-green shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-heritage-green shrink-0 text-emerald-400" />
           ) : toast.type === 'error' || toast.type === 'alert' ? (
-            <AlertTriangle className="w-4 h-4 text-heritage-orange shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-heritage-orange shrink-0 text-amber-400" />
           ) : (
-            <Info className="w-4 h-4 text-heritage-gold shrink-0" />
+            <Info className="w-4 h-4 text-heritage-gold shrink-0 text-amber-300" />
           )}
           <span>{toast.message}</span>
         </div>

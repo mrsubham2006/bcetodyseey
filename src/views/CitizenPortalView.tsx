@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CitizenProvider, useCitizen, CitizenCase } from '../context/CitizenContext';
 import { CitizenAuthModal } from '../components/CitizenAuthModal';
+import { PanelRoleAuth } from '../components/PanelRoleAuth';
 import { KonarkWheelIcon, IkatPatternDivider } from '../components/OdishaMotifs';
 import {
   Home, FileText, Briefcase, Map, Users, Compass, Bell, Archive, User,
@@ -76,10 +77,11 @@ const CitizenPortalInner: React.FC = () => {
       {/* ── Left Sidebar ───────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 border-r border-heritage-stone dark:border-heritage-charcoal bg-white dark:bg-heritage-charcoal sticky top-[7.5rem] h-[calc(100vh-7.5rem)] overflow-y-auto">
         {/* Profile pill */}
-        <div className="p-4 border-b border-heritage-stone dark:border-heritage-charcoal">
+        <div className="p-4 border-b border-heritage-stone dark:border-heritage-charcoal flex flex-col gap-2">
+          <PanelRoleAuth roleId="citizen" />
           {isAuthenticated && citizenUser ? (
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-full bg-heritage-maroon text-heritage-gold flex items-center justify-center font-bold text-sm shrink-0">
+              <div className="w-8 h-8 rounded-full bg-heritage-maroon text-heritage-gold flex items-center justify-center font-bold text-xs shrink-0">
                 {citizenUser.avatar_initials}
               </div>
               <div className="flex-1 min-w-0">
@@ -89,10 +91,10 @@ const CitizenPortalInner: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[11px] text-heritage-aged">Sign in to access all features</p>
+              <p className="text-[10px] text-heritage-aged">Or use citizen fast-login:</p>
               <div className="flex space-x-2">
-                <button onClick={openLogin} className="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-heritage-maroon text-white hover:bg-heritage-maroon-dark transition-colors">Sign In</button>
-                <button onClick={openRegister} className="flex-1 py-1.5 text-xs font-semibold rounded-lg border border-heritage-maroon text-heritage-maroon dark:text-heritage-gold dark:border-heritage-gold hover:bg-heritage-maroon/5 transition-colors">Register</button>
+                <button onClick={openLogin} className="flex-1 py-1 text-[11px] font-semibold rounded-lg bg-heritage-maroon/20 text-heritage-maroon dark:text-heritage-gold border border-heritage-maroon/30 hover:bg-heritage-maroon/30 transition-colors">Sign In</button>
+                <button onClick={openRegister} className="flex-1 py-1 text-[11px] font-semibold rounded-lg border border-heritage-maroon/30 text-heritage-maroon dark:text-heritage-gold hover:bg-heritage-maroon/5 transition-colors">Register</button>
               </div>
             </div>
           )}

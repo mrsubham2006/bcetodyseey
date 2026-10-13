@@ -1,5 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { useUnifiedAuth, RoleId } from '../context/UnifiedAuthContext';
+import { useCitizen } from '../context/CitizenContext';
 import { KonarkWheelIcon, IkatPatternDivider, TempleSilhouetteIcon } from '../components/OdishaMotifs';
 import {
   Shield,
@@ -17,7 +19,10 @@ import {
   AlertTriangle,
   Zap,
   Users,
-  MapPin
+  MapPin,
+  ShieldCheck,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 
 interface LandingViewProps {
@@ -27,14 +32,21 @@ interface LandingViewProps {
 
 export const LandingView: React.FC<LandingViewProps> = ({ onExplore, onOpenFlagship }) => {
   const { language } = useApp();
+  const { isRoleAuthenticated } = useUnifiedAuth();
+  const { isAuthenticated: isCitizenAuthenticated } = useCitizen();
+
+  const isModuleAuthenticated = (viewId: string) => {
+    if (viewId === 'citizen') return isCitizenAuthenticated || isRoleAuthenticated('citizen');
+    return isRoleAuthenticated(viewId as RoleId);
+  };
 
   const coreModules = [
-    { title: "Citizen Portal", desc: "Citizen complaint reporting with photo, voice recording, and GPS tracking.", icon: Users, view: "citizen" },
-    { title: "City Command Center", desc: "Unified operational map, live incident feed, and inter-agency dispatch.", icon: Activity, view: "command" },
-    { title: "AI Intelligence Engine", desc: "Automated report classification, structured schema extraction, and risk assessment.", icon: Cpu, view: "ai_intelligence" },
-    { title: "Municipal Management", desc: "Task lifecycle tracking across Drainage, Roads, Sanitation, and Lighting departments.", icon: Building2, view: "municipal" },
-    { title: "Field Operations", desc: "Mobile-optimized terminal for work instructions and before-and-after proof uploads.", icon: HardHat, view: "field_worker" },
-    { title: "Emergency Response", desc: "Multi-agency coordination for fire hazards, flooding, and major traffic accidents.", icon: Flame, view: "emergency" },
+    { title: "Citizen Portal", desc: "Citizen complaint reporting with photo, voice recording, and GPS tracking.", icon: Users, view: "citizen", roleBadge: "PUBLIC CITIZEN" },
+    { title: "Municipal Department", desc: "Task lifecycle tracking across Drainage, Roads, Sanitation, and Lighting departments.", icon: Building2, view: "municipal", roleBadge: "OFFICER / SUPERVISOR" },
+    { title: "Field Worker Panel", desc: "Mobile-optimized terminal for work instructions and before-and-after proof uploads.", icon: HardHat, view: "field_worker", roleBadge: "FIELD CREW / BADGE" },
+    { title: "City Command Center", desc: "Unified operational map, live incident feed, and inter-agency dispatch.", icon: Activity, view: "command", roleBadge: "ICCC TELEMETRY" },
+    { title: "Emergency Response", desc: "Multi-agency coordination for fire hazards, flooding, and major traffic accidents.", icon: Flame, view: "emergency", roleBadge: "108 MEDICAL & FIRE" },
+    { title: "Super Admin Panel", desc: "Privileged system administration, RBAC security policies, and system audit logs.", icon: ShieldCheck, view: "admin", roleBadge: "SYSTEM GOVERNANCE" },
   ];
 
   return (
@@ -269,26 +281,52 @@ export const LandingView: React.FC<LandingViewProps> = ({ onExplore, onOpenFlags
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {coreModules.map((m, i) => {
             const Icon = m.icon;
+            const isAuth = isModuleAuthenticated(m.view);
             return (
               <div
                 key={i}
                 onClick={() => onExplore(m.view)}
-                className="p-4 rounded-2xl bg-white dark:bg-heritage-charcoal border border-heritage-stone dark:border-heritage-charcoal hover:border-heritage-gold transition-all duration-200 cursor-pointer shadow-sm hover:shadow-heritage group"
+                className="p-4 rounded-2xl bg-white dark:bg-heritage-charcoal border border-heritage-stone dark:border-heritage-charcoal hover:border-heritage-gold transition-all duration-200 cursor-pointer shadow-sm hover:shadow-heritage group flex flex-col justify-between"
               >
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2.5 rounded-xl bg-heritage-maroon text-heritage-gold group-hover:scale-110 transition-transform">
-                    <Icon className="w-5 h-5" />
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2.5 rounded-xl bg-heritage-maroon text-heritage-gold group-hover:scale-110 transition-transform shadow-sm">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-serif font-bold text-sm text-heritage-charcoal dark:text-heritage-ivory group-hover:text-heritage-maroon dark:group-hover:text-heritage-gold transition-colors">
+                          {m.title}
+                        </h4>
+                        <span className="text-[10px] text-heritage-aged font-mono uppercase tracking-wider block">
+                          {m.roleBadge}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isAuth ? (
+                      <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span>Active</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0">
+                        <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                        <span>Login Req.</span>
+                      </span>
+                    )}
                   </div>
-                  <h4 className="font-serif font-bold text-sm text-heritage-charcoal dark:text-heritage-ivory group-hover:text-heritage-maroon dark:group-hover:text-heritage-gold transition-colors">
-                    {m.title}
-                  </h4>
+
+                  <p className="text-xs text-heritage-aged dark:text-heritage-stone/80 leading-relaxed mb-3">
+                    {m.desc}
+                  </p>
                 </div>
-                <p className="text-xs text-heritage-aged dark:text-heritage-stone/80 leading-relaxed mb-3">
-                  {m.desc}
-                </p>
-                <div className="flex items-center space-x-1 text-xs font-semibold text-heritage-maroon dark:text-heritage-gold">
-                  <span>Open Module</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+
+                <div className="pt-2 border-t border-heritage-stone/40 dark:border-heritage-charcoal-dark flex items-center justify-between text-xs font-semibold text-heritage-maroon dark:text-heritage-gold">
+                  <span>{isAuth ? 'Open Dashboard' : 'Sign In / Sign Up to Enter'}</span>
+                  <div className="p-1 rounded-full bg-heritage-maroon/10 dark:bg-heritage-gold/10 group-hover:translate-x-1 transition-transform">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
                 </div>
               </div>
             );

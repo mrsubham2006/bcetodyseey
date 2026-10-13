@@ -4,6 +4,7 @@ import { Task, Department, Report, Incident, AuditLog } from '../types';
 import { KonarkWheelIcon } from '../components/OdishaMotifs';
 import { SatelliteLocationMap } from '../components/SatelliteLocationMap';
 import { SmartCityMap } from '../components/SmartCityMap';
+import { PanelRoleAuth } from '../components/PanelRoleAuth';
 import {
   Building2,
   CheckCircle2,
@@ -113,6 +114,14 @@ export const MunicipalView: React.FC = () => {
 
   useEffect(() => {
     fetchAllData();
+
+    const handleSync = () => {
+      fetchAllData();
+    };
+    window.addEventListener('civic_sync_event', handleSync);
+    return () => {
+      window.removeEventListener('civic_sync_event', handleSync);
+    };
   }, []);
 
   // 1-Click Verification & Dispatch Work Order
@@ -211,14 +220,17 @@ export const MunicipalView: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={fetchAllData}
-          disabled={loading}
-          className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-heritage-stone dark:border-heritage-charcoal bg-white dark:bg-heritage-charcoal text-xs font-semibold hover:border-heritage-gold transition-colors shadow-sm"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Operations Data</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <PanelRoleAuth roleId="municipal" />
+          <button
+            onClick={fetchAllData}
+            disabled={loading}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-heritage-stone dark:border-heritage-charcoal bg-white dark:bg-heritage-charcoal text-xs font-semibold hover:border-heritage-gold transition-colors shadow-sm"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh Operations Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Operational KPI Grid */}
