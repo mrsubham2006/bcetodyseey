@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useCitizen } from '../context/CitizenContext';
 import { KonarkWheelIcon, IkatPatternDivider } from './OdishaMotifs';
 import { SatelliteLocationMap } from './SatelliteLocationMap';
+import { DualModeLocationPicker } from './DualModeLocationPicker';
 import {
   AlertTriangle, CheckCircle, Clock, MapPin, Camera, Mic, Send,
   RefreshCw, ArrowLeft, Star, Download, MessageSquare, ThumbsUp,
@@ -605,7 +606,7 @@ export const ReportAndRequestCenter: React.FC = () => {
               const isSelected = (cat.code && selectedCategory?.code === cat.code) || (cat.id && selectedCategory?.id === cat.id);
               return (
                 <div
-                  key={cat.code || cat.id || `cat-${catIdx}`}
+                  key={cat.code ? `cat-${cat.code}-${catIdx}` : `cat-${cat.id ?? catIdx}-${catIdx}`}
                   onClick={() => setSelectedCategory(cat)}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left ${
                     isSelected
@@ -707,7 +708,7 @@ export const ReportAndRequestCenter: React.FC = () => {
                   <p className="font-semibold text-[11px] text-amber-900 dark:text-amber-300 mb-1">Helpful details to include:</p>
                   <ul className="list-disc list-inside text-[11px] text-heritage-aged space-y-0.5">
                     {aiAssistance.missing_info_questions.map((q, idx) => (
-                      <li key={idx}>{q}</li>
+                      <li key={`ai-q-${idx}-${q.substring(0, 15)}`}>{q}</li>
                     ))}
                   </ul>
                 </div>
@@ -834,8 +835,8 @@ export const ReportAndRequestCenter: React.FC = () => {
                 Category-Specific Information ({selectedCategory.name})
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {selectedCategory.custom_questions.map(q => (
-                  <div key={q.id}>
+                {selectedCategory.custom_questions.map((q, qIdx) => (
+                  <div key={`cq-${q.id || qIdx}-${qIdx}`}>
                     <label className="block text-[11px] font-semibold text-heritage-aged mb-1">{q.label}</label>
                     {q.type === 'select' ? (
                       <select
@@ -844,8 +845,8 @@ export const ReportAndRequestCenter: React.FC = () => {
                         className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
                       >
                         <option value="">-- Choose option --</option>
-                        {q.options?.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
+                        {q.options?.map((opt, optIdx) => (
+                          <option key={`opt-${optIdx}-${opt}`} value={opt}>{opt}</option>
                         ))}
                       </select>
                     ) : (
@@ -942,9 +943,9 @@ export const ReportAndRequestCenter: React.FC = () => {
                 Attached Files ({evidenceList.length})
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {evidenceList.map(item => (
+                {evidenceList.map((item, itemIdx) => (
                   <div
-                    key={item.file_id}
+                    key={item.file_id ? `ev-${item.file_id}-${itemIdx}` : `ev-${itemIdx}`}
                     className="p-3 rounded-xl border border-heritage-stone dark:border-heritage-charcoal bg-heritage-ivory dark:bg-heritage-charcoal-dark flex items-center justify-between"
                   >
                     <div className="flex items-center space-x-3 overflow-hidden">
@@ -1003,12 +1004,8 @@ export const ReportAndRequestCenter: React.FC = () => {
               <h2 className="font-serif font-bold text-lg sm:text-xl text-heritage-charcoal dark:text-heritage-ivory">
                 {preferOdia ? 'ସଠିକ୍ ସ୍ଥାନ ଚିହ୍ନଟ କରନ୍ତୁ' : 'Location Entry & Satellite Stamp'}
               </h2>
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                locationMode === 'AUTO'
-                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                  : 'bg-amber-100 text-amber-800 border-amber-300'
-              }`}>
-                Mode: {locationMode === 'AUTO' ? '📍 Auto GPS Stamp' : '✍️ Manual Entry'}
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border bg-heritage-maroon text-heritage-gold border-heritage-gold/50">
+                Mode: {locationMode === 'AUTO' ? '⚡ Auto GPS Stamp' : '📍 Manual Pin / Search'}
               </span>
             </div>
             <p className="text-xs text-heritage-aged mt-1">
@@ -1016,201 +1013,29 @@ export const ReportAndRequestCenter: React.FC = () => {
             </p>
           </div>
 
-          {/* Location Input Mode Selection Tabs */}
-          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-heritage-stone/20 dark:bg-heritage-charcoal-dark border border-heritage-stone/50">
-            <button
-              onClick={() => {
-                setLocationMode('AUTO');
-                handleGPSLocation();
-              }}
-              className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                locationMode === 'AUTO'
-                  ? 'bg-heritage-maroon text-heritage-gold shadow-md'
-                  : 'text-heritage-aged hover:text-heritage-charcoal dark:hover:text-white'
-              }`}
-            >
-              <Navigation className="w-4 h-4" />
-              <span>1. Auto Location (GPS Signal)</span>
-            </button>
-
-            <button
-              onClick={() => setLocationMode('MANUAL')}
-              className={`flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
-                locationMode === 'MANUAL'
-                  ? 'bg-heritage-maroon text-heritage-gold shadow-md'
-                  : 'text-heritage-aged hover:text-heritage-charcoal dark:hover:text-white'
-              }`}
-            >
-              <MapPin className="w-4 h-4" />
-              <span>2. Manual Address Entry</span>
-            </button>
-          </div>
-
-          {/* MODE 1: AUTO GPS LOCATION */}
-          {locationMode === 'AUTO' && (
-            <div className="space-y-3 animate-fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <button
-                  onClick={handleGPSLocation}
-                  disabled={gettingGPS}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-heritage-blue text-white text-xs font-semibold hover:bg-heritage-blue/90 disabled:opacity-50 transition-all shadow-sm"
-                >
-                  {gettingGPS ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4 text-heritage-gold" />}
-                  <span>{gettingGPS ? 'Acquiring GPS Signal…' : 'Re-acquire High-Precision Live GPS Signal'}</span>
-                </button>
-
-                <div className="flex items-center space-x-2">
-                  <span className="text-[11px] font-semibold text-heritage-aged">Accuracy:</span>
-                  {(['EXACT', 'APPROXIMATE', 'NOT_SURE'] as const).map(acc => (
-                    <button
-                      key={acc}
-                      onClick={() => setLocationAccuracy(acc)}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border ${
-                        locationAccuracy === acc
-                          ? 'border-heritage-maroon bg-heritage-maroon text-white'
-                          : 'border-heritage-stone text-heritage-aged'
-                      }`}
-                    >
-                      {acc.replace('_', ' ')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {gpsError && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>{gpsError}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* MODE 2: MANUAL ADDRESS ENTRY */}
-          {locationMode === 'MANUAL' && (
-            <div className="space-y-3.5 p-4 rounded-2xl bg-heritage-stone/10 dark:bg-heritage-charcoal-dark border border-heritage-stone/40 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-heritage-charcoal dark:text-heritage-stone mb-1">
-                    Landmark / Location Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={landmark}
-                    onChange={e => setLandmark(e.target.value)}
-                    placeholder="e.g., Rasulgarh Flyover Sluice Gate"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-heritage-charcoal dark:text-heritage-stone mb-1">
-                    Street Address / Area *
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={e => {
-                      setAddress(e.target.value);
-                      runDuplicateCheck();
-                    }}
-                    placeholder="e.g., NH-16 Service Road, Rasulgarh"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-heritage-charcoal dark:text-heritage-stone mb-1">
-                    Municipal Ward / Zone
-                  </label>
-                  <input
-                    type="text"
-                    value={ward}
-                    onChange={e => setWard(e.target.value)}
-                    placeholder="e.g., BMC Ward 28 (North-Central)"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-heritage-charcoal dark:text-heritage-stone mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={e => setCity(e.target.value)}
-                      placeholder="Bhubaneswar"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-heritage-charcoal dark:text-heritage-stone mb-1">
-                      Pincode
-                    </label>
-                    <input
-                      type="text"
-                      value={pincode}
-                      onChange={e => setPincode(e.target.value)}
-                      placeholder="751010"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-heritage-stone/30">
-                <div>
-                  <label className="block text-[10px] font-semibold text-heritage-aged mb-0.5">Manual Latitude (°N)</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={latitude}
-                    onChange={e => setLatitude(parseFloat(e.target.value) || 20.2961)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-heritage-aged mb-0.5">Manual Longitude (°E)</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={longitude}
-                    onChange={e => setLongitude(parseFloat(e.target.value) || 85.8645)}
-                    className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-heritage-stone bg-white dark:bg-heritage-charcoal text-heritage-charcoal dark:text-heritage-ivory"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SATELLITE MAP WITH INTERACTIVE PIN & LOCATION STAMP */}
-          <div>
-            <SatelliteLocationMap
-              latitude={latitude}
-              longitude={longitude}
-              address={address}
-              landmark={landmark}
-              ward={ward}
-              city={city}
-              pincode={pincode}
-              captureMode={locationMode === 'AUTO' ? 'AUTO_GPS' : 'MANUAL_ENTRY'}
-              accuracyMeters={4.5}
-              interactive={true}
-              onLocationChange={(newLat, newLng, details) => {
-                setLatitude(newLat);
-                setLongitude(newLng);
-                if (details) {
-                  setAddress(details.address);
-                  setLandmark(details.landmark);
-                  setCity(details.city);
-                  setPincode(details.pincode);
-                }
-              }}
-              height="300px"
-            />
-          </div>
+          {/* DUAL MODE LOCATION PICKER COMPONENT */}
+          <DualModeLocationPicker
+            initialLatitude={latitude}
+            initialLongitude={longitude}
+            initialAddress={address}
+            initialLandmark={landmark}
+            initialWard={ward}
+            initialCity={city}
+            initialPincode={pincode}
+            initialMode={locationMode === 'AUTO' ? 'AUTO_GPS' : 'MANUAL_ENTRY'}
+            preferOdia={preferOdia}
+            onLocationSelect={(loc) => {
+              setLatitude(loc.latitude);
+              setLongitude(loc.longitude);
+              setAddress(loc.address);
+              setLandmark(loc.landmark);
+              setWard(loc.ward);
+              setCity(loc.city);
+              setPincode(loc.pincode);
+              setLocationMode(loc.captureMode === 'AUTO_GPS' ? 'AUTO' : 'MANUAL');
+              runDuplicateCheck();
+            }}
+          />
 
           {/* DUPLICATE DETECTION PROACTIVE SUGGESTION */}
           {duplicates.length > 0 && !dismissDuplicateNotice && (

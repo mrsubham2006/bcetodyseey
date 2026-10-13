@@ -35,10 +35,6 @@ export const LandingView: React.FC<LandingViewProps> = ({ onExplore, onOpenFlags
     { title: "Municipal Management", desc: "Task lifecycle tracking across Drainage, Roads, Sanitation, and Lighting departments.", icon: Building2, view: "municipal" },
     { title: "Field Operations", desc: "Mobile-optimized terminal for work instructions and before-and-after proof uploads.", icon: HardHat, view: "field_worker" },
     { title: "Emergency Response", desc: "Multi-agency coordination for fire hazards, flooding, and major traffic accidents.", icon: Flame, view: "emergency" },
-    { title: "Hospital Trauma Network", desc: "Real-time ICU and bed availability across AIIMS, Capital Hospital, and SCB.", icon: Hospital, view: "hospitals" },
-    { title: "Traffic Operations", desc: "Road obstruction logging, congestion monitoring, and emergency green corridors.", icon: Navigation, view: "traffic" },
-    { title: "Smart Camera Vision", desc: "YOLO computer vision inference on live municipal video streams.", icon: Camera, view: "cameras" },
-    { title: "Smart Tourism Gateway", desc: "Cultural itineraries, temple heritage notices, and real-time detour safety.", icon: Compass, view: "tourism" },
   ];
 
   return (
@@ -263,7 +259,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onExplore, onOpenFlags
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="font-serif font-bold text-2xl text-heritage-maroon dark:text-heritage-gold">
-            10 Unified Operational Modules
+            6 Core Operational Panels
           </h2>
           <p className="text-xs text-heritage-aged mt-1">
             Every department operates on one shared real-time database with tailored role permissions.

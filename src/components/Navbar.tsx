@@ -86,12 +86,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenFlagship, onOpenRoleSwitch
 
         {/* Right: Controls & Persona Profile */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Demo Mode Badge */}
-          <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-heritage-green/10 border border-heritage-green/30 text-heritage-green text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-heritage-green animate-ping inline-block" />
-            <span>DEMO MODE</span>
-          </div>
-
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
